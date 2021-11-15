@@ -1,7 +1,11 @@
 from simple_playgrounds.agents.parts.controllers import Controller
-from simple_playgrounds.agents.parts.actuators import DiscreteActuator, ContinuousActuator 
 
 class RemoteController(Controller):
+    """
+    This controller is used for agent controlled by external client like a notebook.
+    
+    Attributes are modified by the server when it receives a request
+    """
 
     new_speed = 0
 
@@ -11,22 +15,10 @@ class RemoteController(Controller):
     def generate_actions(self):
 
         commands = {}
+        
+        # Value of all actuators are modified
         for actuator in self.controlled_actuators:
-
-            # if isinstance(actuator, DiscreteActuator):
-            #     act_value = 
-
-            # elif isinstance(actuator, ContinuousActuator):
-
-            #     if actuator.centered:
-            #         act_value = random.choice([-1, 0, 1])
-            #     else:
-            #         act_value = random.choice([0, 1])
-
-            # else:
-            #     raise ValueError("Actuator type not recognized")
-            print(RemoteController.new_speed)
-            commands[actuator] = RemoteController.new_speed
+            commands[actuator] = RemoteController.new_speed 
 
         return commands
 
