@@ -25,7 +25,7 @@ class RemoteController(Controller):
 
             # else:
             #     raise ValueError("Actuator type not recognized")
-
+            print(RemoteController.new_speed)
             commands[actuator] = RemoteController.new_speed
 
         return commands
