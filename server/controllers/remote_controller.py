@@ -2,9 +2,9 @@ from simple_playgrounds.agents.parts.controllers import Controller
 
 class RemoteController(Controller):
     """
-    This controller is used for agent controlled by external client like a notebook.
+    This controller is used for agent controlled by external client like a remote notebook.
     
-    Attributes are modified by the server when it receives a request
+    Attributes are modified when a post request is received
     """
 
     new_speed = 0
@@ -16,7 +16,7 @@ class RemoteController(Controller):
 
         commands = {}
         
-        # Value of all actuators are modified
+        # Value of all actuators are modified to see behavior when new_speed changes
         for actuator in self.controlled_actuators:
             commands[actuator] = RemoteController.new_speed 
 

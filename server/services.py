@@ -5,12 +5,13 @@ from simple_playgrounds.agents.agents import BaseAgent
 from controllers.remote_controller import RemoteController
 
 
-class SpgMock:
+class SpgService:
 
     agent: BaseAgent
     playground: SingleRoom
 
     def __init__(self):
+        # Initialize simple simulator with a room and a base agent
         self.playground = SingleRoom(size=(300, 300))
         self.agent = BaseAgent(controller=RemoteController(), radius=15)
         self.playground.add_agent(agent=self.agent)

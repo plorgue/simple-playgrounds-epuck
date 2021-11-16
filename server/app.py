@@ -1,23 +1,22 @@
-from logging import ERROR
 import logging
 from flask import Flask, jsonify, request
 
-from spg_mock import SpgMock
+from services import SpgService
 import queue, threading
 
-callback_queue = queue.Queue()
+main_thread_queue = queue.Queue()
 
 app = Flask(__name__)
 app.logger.setLevel(logging.INFO)
 
-mock = SpgMock()
+spg = SpgService()
 
 @ app.route('/open-session', methods=['GET'])
 def open_session():
     if request.method == 'GET':
 
-        #
-        callback_queue.put(lambda: mock.start_simulation())
+        # ask main thread to start simple_playgrounds simulator
+        main_thread_queue.put(lambda: spg.start_simulation())
         
         return jsonify(success=True)
         
@@ -31,8 +30,8 @@ def change_speed():
             app.logger.error(f'data is not compatible. Missing arguments')
             return jsonify(success=False)
 
-        # Here the new values should be assigned to the agent (maybe using asyncIO ?)
-        mock.set_speed(float(speed))
+        # Modify speed of the only agent for now
+        spg.set_speed(float(speed))
 
         app.logger.info(f'new values are : speed = {speed}')
         return jsonify(success=True)
@@ -43,11 +42,12 @@ def change_speed():
 
 if __name__ == "__main__":
 
-    #
+    # launch flask in a separated thread
     threading.Thread(target=app.run).start()
     
-    #
+    # main thread waits for execute process
+    # especially for start the sgp simulator
     while True:
-        callback = callback_queue.get() #blocks until an item is available
+        callback = main_thread_queue.get() #blocks until an item is available
         callback()
 
