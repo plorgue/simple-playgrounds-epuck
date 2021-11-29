@@ -1,4 +1,5 @@
 from simple_playgrounds.agents.parts.controllers import Controller
+from simple_playgrounds.agents.parts.actuators import LongitudinalForce, AngularVelocity
 
 class RemoteController(Controller):
     """
@@ -7,18 +8,37 @@ class RemoteController(Controller):
     Attributes are modified when a post request is received
     """
 
-    new_speed = 0
-
     def __init__(self):
         super().__init__()
+        self._velocity = 0
+        self._rotation = 0
 
     def generate_actions(self):
 
         commands = {}
         
         # Value of all actuators are modified to see behavior when new_speed changes
+        
         for actuator in self.controlled_actuators:
-            commands[actuator] = RemoteController.new_speed 
+            if(isinstance(actuator,LongitudinalForce)):
+                commands[actuator] = self._velocity
+            elif(isinstance(actuator,AngularVelocity)):
+                commands[actuator] = self._rotation
 
         return commands
 
+    @property
+    def velocity(self):
+        return self._velocity
+    
+    @property
+    def rotation_velocity(self):
+        return self._rotation
+
+    @velocity.setter
+    def velocity(self, new_velocity):
+        self._velocity = new_velocity
+
+    @rotation_velocity.setter
+    def rotation_velocity(self, new_rotation):
+        self._rotation = new_rotation
