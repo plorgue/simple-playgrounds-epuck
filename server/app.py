@@ -1,6 +1,5 @@
 import logging
 from flask import Flask, jsonify, request
-import requests
 
 from services import SpgService
 import queue, threading
@@ -12,58 +11,105 @@ app.logger.setLevel(logging.INFO)
 
 spg = SpgService()
 
-@ app.route('/open-session', methods=['GET'])
+
+@app.route("/open-session", methods=["GET"])
 def open_session():
-    if request.method == 'GET':
-        nb_agent = request.json.get('nb_agent')
-        print(nb_agent)
+    if request.method == "GET":
+        nb_agent = request.json.get("nb_agent")
+        sensor = request.json.get("sensor")
+
         # ask main thread to start simple_playgrounds simulator
-        main_thread_queue.put(lambda: spg.start_simulation(nb_agent))
-        
+        main_thread_queue.put(lambda: spg.start_simulation(nb_agent, sensor))
+
         return jsonify(success=True)
 
-@ app.route('/change-speed', methods=['POST'])
+
+@app.route("/change-speed", methods=["POST"])
 def change_speed():
-    if request.method == 'POST':
-        speed = request.json.get('speed')
-        agent_name = request.json.get('name')
+    if request.method == "POST":
+        speed = request.json.get("speed")
+        agent_name = request.json.get("name")
         if speed == None or agent_name == None:
-            app.logger.error(f'data is not compatible. Missing arguments')
+            app.logger.error(f"data is not compatible. Missing arguments")
             return jsonify(success=False)
 
         # Modify speed of the only agent for now
         velocity, rotation = spg.set_speed(agent_name, speed)
 
-        app.logger.info(f'new values are : speed = {velocity}, rotation = {rotation}')
+        app.logger.info(f"new values are : speed = {velocity}, rotation = {rotation}")
         return jsonify(success=True)
     else:
         app.logger.info("changing speed failed")
         return jsonify(success=False)
 
-@ app.route('/agents')
+
+@app.route("/stop-session", methods=["POST"])
+def stop_simulator():
+    if request.method == "POST":
+        if spg.state_simulator == spg.STATE_RUNNING:
+            spg.stop_simulator()
+            return jsonify(success=True)
+    return jsonify(success=False)
+
+
+@app.route("/reset-session", methods=["POST"])
+def reset_simulator():
+    if request.method == "POST":
+        if spg.state_simulator == spg.STATE_WAITING:
+            spg.reset_simulator()
+            return jsonify(success=True)
+    return jsonify(success=False)
+
+
+@app.route("/agents")
 def agents():
-    if request.method == 'GET':
-        return jsonify({'data': {'names': spg.get_agents_names()}})
+    if request.method == "GET":
+        return jsonify({"data": {"names": spg.get_agents_names()}})
 
-@ app.route('/agents/speed')
+
+@app.route("/agents/speed")
 def agents_speed():
-    if request.method == 'GET':
-        return jsonify({'data': spg.get_agents_velocity()})
+    if request.method == "GET":
+        return jsonify({"data": spg.get_agents_velocity()})
 
-@ app.route('/agents/position')
+
+@app.route("/agents/position")
 def agents_position():
-    if request.method == 'GET':
-        return jsonify({'data': spg.get_agents_position()})
+    if request.method == "GET":
+        return jsonify({"data": spg.get_agents_position()})
+
+
+@app.route("/agent/<name>")
+def an_agent(name):
+    if request.method == "GET":
+
+        return jsonify(
+            {
+                "data": {
+                    "name": name,
+                    "position": spg.get_agents_position()[name],
+                    "velocity": spg.get_agents_velocity()[name]["velocity"],
+                    "rotation": spg.get_agents_velocity()[name]["rotation"],
+                    "sensors": spg.get_agent_sensors(name)["sensors"],
+                }
+            }
+        )
+
+
+@app.route("/agent/<name>/sensor/<sensor>")
+def a_sensor(name, sensor):
+    if request.method == "GET":
+
+        return jsonify({"data": spg.get_agent_sensor_value(name, sensor)})
 
 
 if __name__ == "__main__":
 
     # launch flask in a separated thread
     threading.Thread(target=app.run).start()
-    
+
     # main thread waits for execute process
     # especially for start the sgp simulator
     while True:
-        callback = main_thread_queue.get() #blocks until an item is available
+        callback = main_thread_queue.get()  # blocks until an item is available
         callback()
-

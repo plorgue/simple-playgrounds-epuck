@@ -17,8 +17,6 @@ class RemoteController(Controller):
 
         commands = {}
         
-        # Value of all actuators are modified to see behavior when new_speed changes
-        
         for actuator in self.controlled_actuators:
             if(isinstance(actuator,LongitudinalForce)):
                 commands[actuator] = self._velocity
