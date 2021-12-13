@@ -17,9 +17,13 @@ def open_session():
     if request.method == "GET":
         nb_agent = request.json.get("nb_agent")
         sensor = request.json.get("sensor")
+        ids = request.json.get("ids")
 
         # ask main thread to start simple_playgrounds simulator
-        main_thread_queue.put(lambda: spg.start_simulation(nb_agent, sensor))
+        if(isinstance(ids, list)):
+            main_thread_queue.put(lambda: spg.start_simulation(nb_agent=nb_agent, sensor=sensor, ids=ids))
+        else:
+            main_thread_queue.put(lambda: spg.start_simulation(nb_agent=nb_agent, sensor=sensor))
 
         return jsonify(success=True)
 
