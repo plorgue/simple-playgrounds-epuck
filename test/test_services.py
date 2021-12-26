@@ -1,117 +1,250 @@
-import sys, os
+import sys, os, math
 
 sys.path.append(os.path.join(os.getcwd(), "server"))
 sys.path.append(os.path.join(os.getcwd()))
 
+from simple_playgrounds.device.sensors import SemanticCones
 import pytest
-from simple_playgrounds.agents.sensors import Proximity
 from services import SpgService
-import threading, time, queue
+import threading, time
 
 
-@pytest.mark.parametrize(
-    "nb_agent,ids, sensor", 
-    [
-        (1, [], None),
-        (3, [], None),
-        (3, [], 'proximiter'),
-        (0, ['foo', 'bar'], None),
-        (3, ['foo', 'bar'], 'proximiter'),
-    ])
-def test_add_agent(nb_agent, ids, sensor):
-    spg_service = SpgService()
-    spg_service.add_agents(nb_agent=nb_agent, sensor=sensor, ids=ids)
-    real_nb_of_agent = nb_agent
-    
-    if len(ids) > 0:
-        real_nb_of_agent = len(ids) 
-    assert len(spg_service.playground.agents) == real_nb_of_agent
-    
-    for agent in spg_service.playground.agents:
-        if len(ids) > 0:
-            assert agent.name in ids
-            ids.pop(ids.index(agent.name))
-        for sensor in agent.sensors:
-            assert type(sensor) == Proximity
+# @pytest.mark.parametrize(
+#     "nb_agent,ids, sensor",
+#     [
+#         (1, [], None),
+#         (3, [], None),
+#         (3, [], 'proximiter'),
+#         (0, ['foo', 'bar'], None),
+#         (3, ['foo', 'bar'], 'proximiter'),
+#     ])
+# def test_add_agent(nb_agent, ids, sensor):
+#     spg_service = SpgService()
+#     spg_service.add_agent(nb_agent=nb_agent, sensor=sensor, ids=ids)
+#     real_nb_of_agent = nb_agent
 
-@pytest.mark.parametrize(
-    "speed,expect_speed", 
-    [
-        ({"left": -1, "right": -1}, (-1, 0)),     # full speed backward
-        ({"left": -1, "right": 1}, (0, -1)),      # spin left
-        ({"left": -1, "right": 0}, (-0.5, -0.5)), # turn left backward 
-        ({"left": 0, "right": 1}, (0.5, -0.5)),   # turn left forward
-        ({"left": 0, "right": 0}, (0, 0)),        # stop
-        ({"left": 1, "right": -1}, (0, 1)),       # spin right
-        ({"left": 1, "right": 1}, (1, 0)),        # full speed forward
-    ])
-def test_set_speed(speed, expect_speed):
-    spg_service = SpgService()
-    spg_service.add_agents(nb_agent=1, sensor=None)
-    name = spg_service.get_agents_names()[0]
-    velocity, rotation = spg_service.set_speed(name, speed)
-    assert velocity == expect_speed[0]
-    assert rotation == expect_speed[1]
+#     if len(ids) > 0:
+#         real_nb_of_agent = len(ids)
+#     assert len(spg_service.playground.agents) == real_nb_of_agent
 
-def test_get_agents_names():
-    spg_service = SpgService()
-    nb_agent = 1
-    spg_service.add_agents(nb_agent=nb_agent, sensor=None)
-    assert len(spg_service.get_agents_names()) == nb_agent
+#     for agent in spg_service.playground.agents:
+#         if len(ids) > 0:
+#             assert agent.name in ids
+#             ids.pop(ids.index(agent.name))
+#         for sensor in agent.sensors:
+#             assert type(sensor) == Proximity
 
-@pytest.mark.skip
-def velocity_tests(spg_service, speed, expected_speed, assertions):
-
-    time.sleep(0.5)
-    spg_service.set_speed('robot_1', speed)
-    spg_service.set_speed('robot_2', speed)
-    time.sleep(0.5)
-    spg_service.stop_simulator()
-
-    current_speeds = spg_service.get_agents_velocity()
-
-    assertions.append(['robot_1_in_speed', True ,'robot_1' in current_speeds.keys()])
-    assertions.append(['robot_2_in_speed', True ,'robot_2' in current_speeds.keys()])
-    assertions.append(['robot_1_velocity', current_speeds['robot_1']['velocity'], expected_speed[0]])
-    assertions.append(['robot_2_velocity', current_speeds['robot_2']['velocity'], expected_speed[0]])
-    assertions.append(['robot_1_rotation', current_speeds['robot_1']['rotation'], expected_speed[0]])
-    assertions.append(['robot_2_rotation', current_speeds['robot_2']['rotation'], expected_speed[0]])
-
-
-@pytest.mark.parametrize(
-    "speed,expect_speed", 
-    [
-        ({"left": 1, "right": 1}, (1, 0)),        # full speed forward
-        ({"left": -1, "right": 1}, (0, -1)),      # spin left
-        ({"left": -1, "right": 0}, (-0.5, -0.5)), # turn left backward 
-    ])
-def test_get_agents_velocity(speed, expect_speed):
-    spg_service = SpgService()
-    assertions = []
-    thread = threading.Thread(target=velocity_tests, args=(spg_service, speed, expect_speed, assertions,))
-    thread.start()
-    spg_service.start_simulation(ids=['robot_1', 'robot_2'])
-    thread.join()
-
-    assert len(assertions) == 6
-    for assertion in assertions:
-        assert assertion[0]+': '+str(assertion[1]) == assertion[0]+': '+str(assertion[2])
 
 @pytest.mark.skip
 def stop_simulator_test(spg_service, assertions):
     time.sleep(0.5)
     spg_service.stop_simulator()
-    assertions.append(['nb_agent',len(spg_service.engine.playground.agents), 0])
+    assertions.append(["nb_agent", len(spg_service.engine.playground.agents), 0])
+
 
 def test_start_stop_simulator():
     spg_service = SpgService()
     assertions = []
-    thread = threading.Thread(target=stop_simulator_test, args=(spg_service,assertions,))
+    thread = threading.Thread(
+        target=stop_simulator_test,
+        args=(
+            spg_service,
+            assertions,
+        ),
+    )
     thread.start()
     spg_service.start_simulation()
     thread.join()
 
     assert len(assertions) == 1
     for assertion in assertions:
-        assert assertion[0]+': '+str(assertion[1]) == assertion[0]+': '+str(assertion[2])
+        assert assertion[0] + ": " + str(assertion[1]) == assertion[0] + ": " + str(
+            assertion[2]
+        )
+
+
+def test_add_agent():
+    id = 0
+    position = (100, 100)
+    direction = 2
+    type = "epuck"
+
+    spg_service = SpgService()
+    spg_service.add_agent(
+        id=id, position=position, direction=direction, radius=12, type=type
+    )
+
+    assert len(spg_service.playground.agents) == 1
+    assert spg_service.playground.agents[0].name == f"{type}__{id}"
+    assert spg_service.playground.agents[0].initial_coordinates == (position, direction)
+    assert len(spg_service.playground.agents[0].sensors) == 2
+    assert isinstance(
+        spg_service.playground.agents[0].sensors[0], SemanticCones
+    ) and isinstance(spg_service.playground.agents[0].sensors[1], SemanticCones)
+
+
+@pytest.mark.parametrize(
+    "speed,expect_speed",
+    [
+        ({"left": -1, "right": -1}, (-1, 0)),  # full speed backward
+        ({"left": -1, "right": 1}, (0, -1)),  # spin left
+        ({"left": -1, "right": 0}, (-0.5, -0.5)),  # turn left backward
+        ({"left": 0, "right": 1}, (0.5, -0.5)),  # turn left forward
+        ({"left": 0, "right": 0}, (0, 0)),  # stop
+        ({"left": 1, "right": -1}, (0, 1)),  # spin right
+        ({"left": 1, "right": 1}, (1, 0)),  # full speed forward
+    ],
+)
+def test_set_speed(speed, expect_speed):
+    spg_service = SpgService()
+    spg_service.add_agent(id=0)
+    name = spg_service.get_agents_names()[0]
+    velocity, rotation = spg_service.set_speed(name, speed)
+    assert velocity == expect_speed[0]
+    assert rotation == expect_speed[1]
+
+
+@pytest.mark.parametrize("id,type", [(0, None), (1, "bar")])
+def test_get_agents_names(id, type):
+    spg_service = SpgService()
+
+    if type:
+        spg_service.add_agent(id=id, type=type)
+        assert len(spg_service.get_agents_names()) == 1
+        assert spg_service.get_agents_names()[0] == f"{type}__{id}"
+    else:
+        spg_service.add_agent(id=id)
+        assert len(spg_service.get_agents_names()) == 1
+        assert spg_service.get_agents_names()[0] == f"epuck__{id}"
+
+
+@pytest.mark.skip
+def sensors_value_all(spg_service, assertions, main_id, left_ids, right_ids):
+    time.sleep(2)
+    spg_service.stop_simulator()
+    print("awake")
+    detections = spg_service.get_agent_sensors_value(f"epuck__{main_id}","all")
+    
+    left = [int(obj['id']) for obj in detections['left'] if obj['isagent']]
+    right = [int(obj['id']) for obj in detections['right'] if obj['isagent']]
+
+    assertions.append(['left_sensor_detection', left_ids, left])
+    assertions.append(['right_sensor_detection', right_ids, right])
+
+
+def test_sensors_value_all():
+    RADIUS = 10
+    X = 200
+    Y = 200
+
+    main_agent = {"id": 0, "position": (X, Y), "direction": -math.pi / 2, "radius": RADIUS}
+    agents_not_detected = [
+        {"id": 11, "position": (80, Y + RADIUS + 2), "direction": 0, "radius": RADIUS},
+        {"id": 12, "position": (330, Y + RADIUS + 2), "direction": 0, "radius": RADIUS},
+        {"id": 13, "position": (X, 350), "direction": 0, "radius": RADIUS},
+    ]
+    agents_detected_on_left = [
+        {"id": 21, "position": (50, Y + RADIUS), "direction": 0, "radius": RADIUS},
+        {"id": 22, "position": (50, 50), "direction": 0, "radius": RADIUS},
+        {"id": 23, "position": (X - RADIUS - 1, 50), "direction": 0, "radius": RADIUS},
+    ]
+    agents_detected_on_right = [
+        {"id": 31, "position": (X + RADIUS + 1, 50), "direction": 0, "radius": RADIUS},
+        {"id": 32, "position": (350, 50), "direction": 0, "radius": RADIUS},
+        {"id": 33, "position": (350, Y + RADIUS), "direction": 0, "radius": RADIUS},
+    ]
+
+    spg_service = SpgService()
+    assertions = []
+    main_id = main_agent['id']
+    left_ids = [agt['id'] for agt in agents_detected_on_left]
+    right_ids = [agt['id'] for agt in agents_detected_on_right]
+
+    thread = threading.Thread(
+        target=sensors_value_all,
+        args=(
+            spg_service,
+            assertions,
+            main_id,
+            left_ids,
+            right_ids
+        ),
+    )
+    thread.start()
+    spg_service.start_simulation(
+        [
+            main_agent,
+            *agents_detected_on_left,
+            *agents_detected_on_right,
+            *agents_not_detected,
+        ]
+    )
+    thread.join()
+
+    assert len(assertions) == 2
+    for assertion in assertions:
+        assert assertion[0] + ": " + str(assertion[1]) == assertion[0] + ": " + str(
+            assertion[2]
+        )
+
+####  SKIPPED  ####
+
+
+@pytest.mark.skip
+def velocity_tests(spg_service, speed, expected_speed, assertions):
+
+    time.sleep(0.5)
+    spg_service.set_speed("robot_1", speed)
+    spg_service.set_speed("robot_2", speed)
+    time.sleep(0.5)
+    spg_service.stop_simulator()
+
+    current_speeds = spg_service.get_agents_velocity()
+
+    assertions.append(["robot_1_in_speed", True, "robot_1" in current_speeds.keys()])
+    assertions.append(["robot_2_in_speed", True, "robot_2" in current_speeds.keys()])
+    assertions.append(
+        ["robot_1_velocity", current_speeds["robot_1"]["velocity"], expected_speed[0]]
+    )
+    assertions.append(
+        ["robot_2_velocity", current_speeds["robot_2"]["velocity"], expected_speed[0]]
+    )
+    assertions.append(
+        ["robot_1_rotation", current_speeds["robot_1"]["rotation"], expected_speed[0]]
+    )
+    assertions.append(
+        ["robot_2_rotation", current_speeds["robot_2"]["rotation"], expected_speed[0]]
+    )
+
+
+@pytest.mark.skip
+@pytest.mark.parametrize(
+    "speed,expect_speed",
+    [
+        ({"left": 1, "right": 1}, (1, 0)),  # full speed forward
+        ({"left": -1, "right": 1}, (0, -1)),  # spin left
+        ({"left": -1, "right": 0}, (-0.5, -0.5)),  # turn left backward
+    ],
+)
+def test_get_agents_velocity(speed, expect_speed):
+    spg_service = SpgService()
+    assertions = []
+    thread = threading.Thread(
+        target=velocity_tests,
+        args=(
+            spg_service,
+            speed,
+            expect_speed,
+            assertions,
+        ),
+    )
+    thread.start()
+    spg_service.start_simulation(ids=["robot_1", "robot_2"])
+    thread.join()
+
+    assert len(assertions) == 6
+    for assertion in assertions:
+        assert assertion[0] + ": " + str(assertion[1]) == assertion[0] + ": " + str(
+            assertion[2]
+        )
 

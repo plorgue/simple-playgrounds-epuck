@@ -1,3 +1,6 @@
 .vscode
+note.txt
+/server/script.ipynb
+/server/script.py
 
 __pycache__

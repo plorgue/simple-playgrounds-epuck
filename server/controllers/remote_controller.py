@@ -1,5 +1,5 @@
-from simple_playgrounds.agents.parts.controllers import Controller
-from simple_playgrounds.agents.parts.actuators import LongitudinalForce, AngularVelocity
+from simple_playgrounds.agent.controllers import Controller
+from simple_playgrounds.agent.actuators import LongitudinalForce, AngularVelocity
 
 class RemoteController(Controller):
     """
@@ -40,3 +40,6 @@ class RemoteController(Controller):
     @rotation_velocity.setter
     def rotation_velocity(self, new_rotation):
         self._rotation = new_rotation
+
+    def terminates_episode(self):
+        pass
