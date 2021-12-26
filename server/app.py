@@ -1,5 +1,5 @@
 import logging
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, Response
 
 from services import SpgService
 import queue, threading
@@ -15,17 +15,13 @@ spg = SpgService()
 @app.route("/open-session", methods=["GET"])
 def open_session():
     if request.method == "GET":
-        nb_agent = request.json.get("nb_agent")
-        sensor = request.json.get("sensor")
-        ids = request.json.get("ids")
+        agents = request.json.get("agents")
+        if(not agents): agents = []
 
         # ask main thread to start simple_playgrounds simulator
-        if(isinstance(ids, list)):
-            main_thread_queue.put(lambda: spg.start_simulation(nb_agent=nb_agent, sensor=sensor, ids=ids))
-        else:
-            main_thread_queue.put(lambda: spg.start_simulation(nb_agent=nb_agent, sensor=sensor))
-
-        return jsonify(success=True)
+        status = main_thread_queue.put(lambda: spg.start_simulation(agents=agents))
+        if(status): return Response(status=200)
+        else: return Response(status=500)
 
 
 @app.route("/change-speed", methods=["POST"])
@@ -70,41 +66,52 @@ def agents():
     if request.method == "GET":
         return jsonify({"data": {"names": spg.get_agents_names()}})
 
-
-@app.route("/agents/speed")
-def agents_speed():
+@app.route("agent/prox-activations")
+def agent_sensor_value():
     if request.method == "GET":
-        return jsonify({"data": spg.get_agents_velocity()})
+        agent_name = request.json.get("agent_name")
+
+        if(spg.state_simulator == spg.STATE_STOPPED):
+            return Response.status_code(500)
+        elif (agent_name):
+            return spg.get_agent_sensors_value(agent_name)
+        else:
+            return Response.status_code(400)
+
+# @app.route("/agents/speed")
+# def agents_speed():
+#     if request.method == "GET":
+#         return jsonify({"data": spg.get_agents_velocity()})
 
 
-@app.route("/agents/position")
-def agents_position():
-    if request.method == "GET":
-        return jsonify({"data": spg.get_agents_position()})
+# @app.route("/agents/position")
+# def agents_position():
+#     if request.method == "GET":
+#         return jsonify({"data": spg.get_agents_position()})
 
 
-@app.route("/agent/<name>")
-def an_agent(name):
-    if request.method == "GET":
+# @app.route("/agent/<name>")
+# def an_agent(name):
+#     if request.method == "GET":
 
-        return jsonify(
-            {
-                "data": {
-                    "name": name,
-                    "position": spg.get_agents_position()[name],
-                    "velocity": spg.get_agents_velocity()[name]["velocity"],
-                    "rotation": spg.get_agents_velocity()[name]["rotation"],
-                    "sensors": spg.get_agent_sensors(name)["sensors"],
-                }
-            }
-        )
+#         return jsonify(
+#             {
+#                 "data": {
+#                     "name": name,
+#                     "position": spg.get_agents_position()[name],
+#                     "velocity": spg.get_agents_velocity()[name]["velocity"],
+#                     "rotation": spg.get_agents_velocity()[name]["rotation"],
+#                     "sensors": spg.get_agent_sensors(name)["sensors"],
+#                 }
+#             }
+#         )
 
 
-@app.route("/agent/<name>/sensor/<sensor>")
-def a_sensor(name, sensor):
-    if request.method == "GET":
+# @app.route("/agent/<name>/sensor/<sensor>")
+# def a_sensor(name, sensor):
+#     if request.method == "GET":
 
-        return jsonify({"data": spg.get_agent_sensor_value(name, sensor)})
+#         return jsonify({"data": spg.get_agent_sensor_value(name, sensor)})
 
 
 if __name__ == "__main__":

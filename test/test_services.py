@@ -9,32 +9,6 @@ from services import SpgService
 import threading, time
 
 
-# @pytest.mark.parametrize(
-#     "nb_agent,ids, sensor",
-#     [
-#         (1, [], None),
-#         (3, [], None),
-#         (3, [], 'proximiter'),
-#         (0, ['foo', 'bar'], None),
-#         (3, ['foo', 'bar'], 'proximiter'),
-#     ])
-# def test_add_agent(nb_agent, ids, sensor):
-#     spg_service = SpgService()
-#     spg_service.add_agent(nb_agent=nb_agent, sensor=sensor, ids=ids)
-#     real_nb_of_agent = nb_agent
-
-#     if len(ids) > 0:
-#         real_nb_of_agent = len(ids)
-#     assert len(spg_service.playground.agents) == real_nb_of_agent
-
-#     for agent in spg_service.playground.agents:
-#         if len(ids) > 0:
-#             assert agent.name in ids
-#             ids.pop(ids.index(agent.name))
-#         for sensor in agent.sensors:
-#             assert type(sensor) == Proximity
-
-
 @pytest.mark.skip
 def stop_simulator_test(spg_service, assertions):
     time.sleep(0.5)
@@ -65,18 +39,26 @@ def test_start_stop_simulator():
 
 def test_add_agent():
     id = 0
-    position = (100, 100)
-    direction = 2
+    initial_coordinates = ((0.5, 0.5), 2)
     type = "epuck"
 
     spg_service = SpgService()
     spg_service.add_agent(
-        id=id, position=position, direction=direction, radius=12, type=type
+        id=id, initial_coordinates=initial_coordinates, radius=12, type=type
     )
 
     assert len(spg_service.playground.agents) == 1
     assert spg_service.playground.agents[0].name == f"{type}__{id}"
-    assert spg_service.playground.agents[0].initial_coordinates == (position, direction)
+    assert (
+        spg_service.playground.agents[0].initial_coordinates[1]
+        == initial_coordinates[1]
+    )
+    assert spg_service.playground.agents[0].initial_coordinates[0][0] == int(
+        initial_coordinates[0][0] * spg_service.playground.size[0]
+    )
+    assert spg_service.playground.agents[0].initial_coordinates[0][1] == int(
+        initial_coordinates[0][1] * spg_service.playground.size[1]
+    )
     assert len(spg_service.playground.agents[0].sensors) == 2
     assert isinstance(
         spg_service.playground.agents[0].sensors[0], SemanticCones
@@ -120,64 +102,99 @@ def test_get_agents_names(id, type):
 
 @pytest.mark.skip
 def sensors_value_all(spg_service, assertions, main_id, left_ids, right_ids):
-    time.sleep(2)
-    spg_service.stop_simulator()
-    print("awake")
-    detections = spg_service.get_agent_sensors_value(f"epuck__{main_id}","all")
-    
-    left = [int(obj['id']) for obj in detections['left'] if obj['isagent']]
-    right = [int(obj['id']) for obj in detections['right'] if obj['isagent']]
+    time.sleep(2.5)
 
-    assertions.append(['left_sensor_detection', left_ids, left])
-    assertions.append(['right_sensor_detection', right_ids, right])
+    detections = spg_service.get_agent_sensors_value(f"epuck__{main_id}", "all")
+
+    left = [int(obj["id"]) for obj in detections["left"] if obj["isagent"]]
+    right = [int(obj["id"]) for obj in detections["right"] if obj["isagent"]]
+
+    assertions.append(["left_sensor_detection", left_ids, left])
+    assertions.append(["right_sensor_detection", right_ids, right])
+    
+    spg_service.stop_simulator()
 
 
 def test_sensors_value_all():
     RADIUS = 10
-    X = 200
-    Y = 200
+    X = Y = 200
 
-    main_agent = {"id": 0, "position": (X, Y), "direction": -math.pi / 2, "radius": RADIUS}
+    main_agent = {
+        "id": 0,
+        "initial_coordinates": ((X, Y), -math.pi / 2),
+        "radius": RADIUS,
+    }
     agents_not_detected = [
-        {"id": 11, "position": (80, Y + RADIUS + 2), "direction": 0, "radius": RADIUS},
-        {"id": 12, "position": (330, Y + RADIUS + 2), "direction": 0, "radius": RADIUS},
-        {"id": 13, "position": (X, 350), "direction": 0, "radius": RADIUS},
+        {
+            "id": 11,
+            "initial_coordinates": ((80, Y + RADIUS + 2), 0),
+            "radius": RADIUS,
+        },
+        {
+            "id": 12,
+            "initial_coordinates": ((330, Y + RADIUS + 2), 0),
+            "radius": RADIUS,
+        },
+        {
+            "id": 13,
+            "initial_coordinates": ((X, 350), 0),
+            "radius": RADIUS,
+        },
     ]
     agents_detected_on_left = [
-        {"id": 21, "position": (50, Y + RADIUS), "direction": 0, "radius": RADIUS},
-        {"id": 22, "position": (50, 50), "direction": 0, "radius": RADIUS},
-        {"id": 23, "position": (X - RADIUS - 1, 50), "direction": 0, "radius": RADIUS},
+        {
+            "id": 21,
+            "initial_coordinates": ((50, Y + RADIUS), 0),
+            "radius": RADIUS,
+        },
+        {
+            "id": 22,
+            "initial_coordinates": ((50, 50), 0),
+            "radius": RADIUS,
+        },
+        {
+            "id": 23,
+            "initial_coordinates": ((X - RADIUS - 1, 50), 0),
+            "radius": RADIUS,
+        },
     ]
     agents_detected_on_right = [
-        {"id": 31, "position": (X + RADIUS + 1, 50), "direction": 0, "radius": RADIUS},
-        {"id": 32, "position": (350, 50), "direction": 0, "radius": RADIUS},
-        {"id": 33, "position": (350, Y + RADIUS), "direction": 0, "radius": RADIUS},
+        {
+            "id": 31,
+            "initial_coordinates": ((X + RADIUS + 1, 50), 0),
+            "radius": RADIUS,
+        },
+        {
+            "id": 32,
+            "initial_coordinates": ((350, 50), 0),
+            "radius": RADIUS,
+        },
+        {
+            "id": 33,
+            "initial_coordinates": ((350, Y + RADIUS), 0),
+            "radius": RADIUS,
+        },
     ]
 
     spg_service = SpgService()
     assertions = []
-    main_id = main_agent['id']
-    left_ids = [agt['id'] for agt in agents_detected_on_left]
-    right_ids = [agt['id'] for agt in agents_detected_on_right]
+    main_id = main_agent["id"]
+    left_ids = [agt["id"] for agt in agents_detected_on_left]
+    right_ids = [agt["id"] for agt in agents_detected_on_right]
 
     thread = threading.Thread(
         target=sensors_value_all,
-        args=(
-            spg_service,
-            assertions,
-            main_id,
-            left_ids,
-            right_ids
-        ),
+        args=(spg_service, assertions, main_id, left_ids, right_ids),
     )
     thread.start()
     spg_service.start_simulation(
-        [
+        agents=[
             main_agent,
             *agents_detected_on_left,
             *agents_detected_on_right,
             *agents_not_detected,
-        ]
+        ],
+        playground={"size": (500, 500)},
     )
     thread.join()
 
@@ -186,6 +203,7 @@ def test_sensors_value_all():
         assert assertion[0] + ": " + str(assertion[1]) == assertion[0] + ": " + str(
             assertion[2]
         )
+
 
 ####  SKIPPED  ####
 
@@ -247,4 +265,3 @@ def test_get_agents_velocity(speed, expect_speed):
         assert assertion[0] + ": " + str(assertion[1]) == assertion[0] + ": " + str(
             assertion[2]
         )
-
