@@ -4,6 +4,9 @@ from simple_playgrounds.agent.agents import BaseAgent, Eye, MobilePlatform
 from simple_playgrounds.device.sensors import SemanticCones
 from typing import Dict
 
+import cv2
+import time
+
 import math
 
 from controllers.remote_controller import RemoteController
@@ -50,11 +53,24 @@ class SpgService:
 
             self.engine = Engine(time_limit=10000, playground=self.playground)
             self.state_simulator = self.STATE_RUNNING
-            self.engine.run()
+            # self.engine.run()
+            agent = self.playground.agents[0]
+            while True:
+                actions = {agent: agent.controller.generate_actions()}
+                self.engine.step(actions)
+
+                cv2.imshow(
+                    'playground',
+                    self.get_image()[:, :, ::-1]
+                )
+
+                cv2.waitKey(1)
+
+                time.sleep(0.05)
             self.engine.terminate()
             self.state_simulator = self.STATE_STOPPED
-        else:
-            return False
+            return True
+        return False
 
     def get_image(self):
         return self.engine.generate_playground_image()
@@ -148,9 +164,13 @@ class SpgService:
         MODES = ["closest", "all"]
         assert mode in MODES, f"Modes available {MODES[0]} {MODES[1]}"
 
+        agent = None
         for agt in self.playground.agents:
             if agt.name == agent_name:
                 agent = agt
+
+        if agent is None:
+            raise ValueError(f"no agent with name {agent} was found")
 
         sensors = {}
         for sensor in agent.sensors:

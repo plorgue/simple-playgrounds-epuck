@@ -1,6 +1,8 @@
 .vscode
+.idea/
 note.txt
 /server/script.ipynb
 /server/script.py
+client/.ipynb_checkpoints/
 
 __pycache__

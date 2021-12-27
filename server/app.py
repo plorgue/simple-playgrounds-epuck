@@ -1,8 +1,10 @@
 import logging
+import queue
+import threading
+
 from flask import Flask, jsonify, request, Response
 
 from services import SpgService
-import queue, threading
 
 main_thread_queue = queue.Queue()
 
@@ -15,27 +17,30 @@ spg = SpgService()
 @app.route("/open-session", methods=["GET"])
 def open_session():
     if request.method == "GET":
-        agents = request.json.get("agents")
-        if(not agents): agents = []
+        agents = request.json.get("agents") or []
 
         # ask main thread to start simple_playgrounds simulator
-        status = main_thread_queue.put(lambda: spg.start_simulation(agents=agents))
-        if(status): return Response(status=200)
-        else: return Response(status=500)
+        main_thread_queue.put(lambda: spg.start_simulation(agents=agents))
+        return Response(status=200)
 
 
 @app.route("/change-speed", methods=["POST"])
 def change_speed():
     if request.method == "POST":
-        speed = request.json.get("speed")
-        agent_name = request.json.get("name")
-        if speed == None or agent_name == None:
+        agent_id = request.json.get("agent_id")
+        speeds = request.json.get("new_speeds")
+        if speeds is None or agent_id is None:
             app.logger.error(f"data is not compatible. Missing arguments")
             return jsonify(success=False)
 
-        # Modify speed of the only agent for now
-        velocity, rotation = spg.set_speed(agent_name, speed)
-
+        # Modify the speeds of the agent
+        velocity, rotation = spg.set_speed(
+            agent_id,
+            {
+                "left": speeds[0],
+                "right": speeds[1]
+            }
+        )
         app.logger.info(f"new values are : speed = {velocity}, rotation = {rotation}")
         return jsonify(success=True)
     else:
@@ -66,17 +71,22 @@ def agents():
     if request.method == "GET":
         return jsonify({"data": {"names": spg.get_agents_names()}})
 
-@app.route("agent/prox-activations")
+
+@app.route("/agent/prox-activations")
 def agent_sensor_value():
     if request.method == "GET":
         agent_name = request.json.get("agent_name")
 
-        if(spg.state_simulator == spg.STATE_STOPPED):
-            return Response.status_code(500)
-        elif (agent_name):
-            return spg.get_agent_sensors_value(agent_name)
+        if spg.state_simulator == spg.STATE_STOPPED:
+            return Response(status=500)
+        elif agent_name:
+            try:
+                return spg.get_agent_sensors_value(agent_name)
+            except ValueError as e:
+                return Response(str(e), status=404)
         else:
-            return Response.status_code(400)
+            return Response(status=400)
+
 
 # @app.route("/agents/speed")
 # def agents_speed():
