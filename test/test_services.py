@@ -27,7 +27,7 @@ def test_start_stop_simulator():
         ),
     )
     thread.start()
-    spg_service.start_simulation()
+    spg_service.start_simulation(showImage=False)
     thread.join()
 
     assert len(assertions) == 1
@@ -195,6 +195,7 @@ def test_sensors_value_all():
             *agents_not_detected,
         ],
         playground={"size": (500, 500)},
+        showImage=False
     )
     thread.join()
 
@@ -257,7 +258,7 @@ def test_get_agents_velocity(speed, expect_speed):
         ),
     )
     thread.start()
-    spg_service.start_simulation(ids=["robot_1", "robot_2"])
+    spg_service.start_simulation(ids=["robot_1", "robot_2"], showImage=False)
     thread.join()
 
     assert len(assertions) == 6
