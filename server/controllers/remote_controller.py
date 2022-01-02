@@ -1,6 +1,7 @@
 from simple_playgrounds.agent.controllers import Controller
 from simple_playgrounds.agent.actuators import LongitudinalForce, AngularVelocity
 
+
 class RemoteController(Controller):
     """
     This controller is used for agent controlled by external client like a remote notebook.
@@ -16,11 +17,11 @@ class RemoteController(Controller):
     def generate_actions(self):
 
         commands = {}
-        
+
         for actuator in self.controlled_actuators:
-            if(isinstance(actuator,LongitudinalForce)):
+            if isinstance(actuator, LongitudinalForce):
                 commands[actuator] = self._velocity
-            elif(isinstance(actuator,AngularVelocity)):
+            elif isinstance(actuator, AngularVelocity):
                 commands[actuator] = self._rotation
 
         return commands
@@ -28,7 +29,7 @@ class RemoteController(Controller):
     @property
     def velocity(self):
         return self._velocity
-    
+
     @property
     def rotation_velocity(self):
         return self._rotation

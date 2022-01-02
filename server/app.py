@@ -16,19 +16,19 @@ spg = SpgService()
 
 @app.route("/open-session", methods=["GET"])
 def open_session():
-    if request.method == "GET":
-        agents = request.json.get("agents") or []
+    data = request.get_json().get('json')
 
-        # ask main thread to start simple_playgrounds simulator
-        main_thread_queue.put(lambda: spg.start_simulation(agents=agents))
-        return Response(status=200)
+    # ask main thread to start simple_playgrounds simulator
+    main_thread_queue.put(lambda: spg.start_simulation(agents=data["agents"]))
+    return Response(status=200)
 
 
 @app.route("/change-speed", methods=["POST"])
 def change_speed():
     if request.method == "POST":
-        agent_id = request.json.get("agent_id")
-        speeds = request.json.get("new_speeds")
+        data = request.get_json().get('json')
+        agent_id = data["agent_id"]
+        speeds = data["new_speeds"]
         if speeds is None or agent_id is None:
             app.logger.error(f"data is not compatible. Missing arguments")
             return jsonify(success=False)

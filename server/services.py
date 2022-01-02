@@ -36,13 +36,13 @@ class SpgService:
         """
         velocity = (speed["left"] + speed["right"]) / 2
         rotation = (speed["left"] - speed["right"]) / 2
+        print(self.controllers)
         self.controllers[name].velocity = max(min(velocity, 1), -1)
         self.controllers[name].rotation_velocity = max(min(rotation, 1), -1)
 
         return velocity, rotation
 
     def start_simulation(self, agents=None, playground={"size": (600, 600)}, showImage=True):
-
         if self.state_simulator != self.STATE_RUNNING:
 
             self.playground = SingleRoom(size=playground["size"])
@@ -54,19 +54,19 @@ class SpgService:
             self.engine = Engine(time_limit=10000, playground=self.playground)
             self.state_simulator = self.STATE_RUNNING
             if showImage:
-                agent = self.playground.agents[0]
-                while True:
-                    actions = {agent: agent.controller.generate_actions()}
-                    self.engine.step(actions)
+                for agent in self.playground.agents:
+                    while True:
+                        actions = {agent: agent.controller.generate_actions()}
+                        self.engine.step(actions)
 
-                    cv2.imshow(
-                        'playground',
-                        self.get_image()[:, :, ::-1]
-                    )
+                        cv2.imshow(
+                            'playground',
+                            self.get_image()[:, :, ::-1]
+                        )
 
-                    cv2.waitKey(1)
+                        cv2.waitKey(1)
 
-                    time.sleep(0.05)
+                        time.sleep(0.05)
             else:
                 self.engine.run()
             self.engine.terminate()

@@ -5,22 +5,24 @@ from threading import Condition
 from behavior import Behavior, BehaviorMixer
 
 
-CHANGE_LEFT_SPEED_URL = 'change-left-speed'
-CHANGE_RIGHT_SPEED_URL = 'change-right-speed'
+CHANGE_SPEED_URL = 'change-speed'
 
 
 class Agent:
 
-    def __init__(self, simulator, agent_id, freq=10.) -> None:
+    def __init__(self, simulator, agent_id, agent_type="epuck", freq=10.) -> None:
+        self._right_spd = 0.
+        self._left_spd = 0.
         self._simulator = simulator
-        self._id = agent_id
+        self.id = agent_id
         self.freq = freq
+        self.type = agent_type
         self._no_detection_value = 2000.
         self.max_speed = 10.
         self._behaviors = {}
-        self.condition = Condition()
-        self.behavior_mixer = BehaviorMixer(self)
-        self.behavior_mixer.start()
+        self._condition = Condition()
+        self._behavior_mixer = BehaviorMixer(self)
+        self._behavior_mixer.start()
         self._conditions = {}
 
     @property
@@ -30,8 +32,7 @@ class Agent:
     @left_spd.setter
     def left_spd(self, value):
         self._left_spd = copy(value)
-        self._simulator._send_request(
-            'POST', CHANGE_LEFT_SPEED_URL, self._id, self.left_wheel)
+        self._set_remote_speed()
 
     @property
     def right_spd(self):
@@ -40,8 +41,7 @@ class Agent:
     @right_spd.setter
     def right_spd(self, value):
         self._right_spd = copy(value)
-        self._simulator._send_request(
-            'POST', CHANGE_RIGHT_SPEED_URL, self._id, self.right_wheel)
+        self._set_remote_speed()
 
     @property
     def left_wheel(self):
@@ -58,6 +58,16 @@ class Agent:
     @right_wheel.setter
     def right_wheel(self, value):
         self._right_spd = value * self.max_speed
+
+    def _set_remote_speed(self):
+        self._simulator._send_request(
+            'POST',
+            CHANGE_SPEED_URL,
+            json={
+                "agent_id": f"{self.type}__{self.id}",
+                "new_speeds": [self.left_wheel, self.right_wheel]
+            }
+        )
 
     def _start(self, dictionary, callback):
         if callback not in dictionary:

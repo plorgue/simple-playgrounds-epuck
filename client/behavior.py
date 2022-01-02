@@ -45,7 +45,7 @@ class BehaviorMixer(ParralelClass):
         self.period = 1. / robot.freq
         self.robot = robot
         self.behaviors = robot._behaviors
-        self.condition = robot.condition
+        self.condition = robot._condition
         self._running = Event()
         self._running.clear()
         self._to_terminate = Event()

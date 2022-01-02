@@ -4,7 +4,7 @@ from simulator import get_session as gs
 from simulator import close_session
 
 
-get_session = partial(gs, n_agents=1)
+get_session = partial(gs, nb_agents=1)
 
 open_session = get_session
 
