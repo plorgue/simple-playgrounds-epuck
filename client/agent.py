@@ -59,7 +59,7 @@ class Agent:
     @right_wheel.setter
     def right_wheel(self, value):
         self._right_spd = value * self.max_speed
-
+        
     def _set_remote_speed(self):
         self._simulator._send_request(
             'POST',
@@ -128,8 +128,7 @@ class Agent:
 
 
     def attach_behavior(self, callback, freq):
-        self._behaviors[callback] = Behavior(
-            self, callback, self._condition, freq)
+        self._behaviors[callback] = Behavior(self, callback, self._condition, freq)
         self._behaviors[callback].start()
 
     def start_behavior(self, callback):
@@ -153,4 +152,3 @@ class Agent:
 
     def detach_all_behaviors(self):
         self._detach_all(self._behaviors)
-        

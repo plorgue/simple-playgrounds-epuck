@@ -6,10 +6,10 @@ from time import time
 
 class Routine(ParralelClass):
 
-    def __init__(self, object_with_io, callback, condition, freq, **callback_kwargs):
+    def __init__(self, agent, callback, condition, freq, **callback_kwargs):
         ParralelClass.__init__(self)
         self.period = 1. / freq
-        self.object_with_io = object_with_io
+        self.agent = agent
         self.callback = callback
         self.callback_kwargs = callback_kwargs
 
@@ -20,12 +20,41 @@ class Routine(ParralelClass):
         self._to_terminate.clear()
         self.verbose = False
 
+    def run(self):
+        while True:
+            if self._to_terminate.is_set():
+                break
+            start_time = time()
+            if self._running.is_set():
+                self.condition.acquire()
+                self.loop_core()
+                self.condition.release()
+            time_to_wait = self.period + start_time - time()
+            if time_to_wait >= 0.:
+                self.agent.wait(time_to_wait)
+            elif self.verbose:
+                print("Too slow")
+
+    def loop_core(self):
+        self.callback(self.agent, **self.callback_kwargs)
+
+    def execute(self):
+        self._running.set()
+
+    def is_executed(self):
+        return self._running.is_set()
+
+    def stop(self):
+        self._running.clear()
+
+    def _terminate(self):
+        self._to_terminate.set()
 
 class Behavior(Routine):
 
     def __init__(self, robot, callback, condition, freq):
         Routine.__init__(self, robot, callback, condition, freq)
-        self.robot = self.object_with_io
+        self.robot = robot
         self.left_wheel = 0.
         self.right_wheel = 0.
         self.activation = 0.
@@ -67,17 +96,15 @@ class BehaviorMixer(ParralelClass):
                     elif self.mode == "average":
                         activations = self._average()
                     else:
-                        print(
-                            self.mode, "is not a valid mode. Choices are \"random\" or \"average\"")
-                self.robot.left_wheel, self.robot.right_wheel = activations
+                        print(self.mode, "is not a valid mode. Choices are \"random\" or \"average\"")
+                self.robot.left_spd, self.robot.right_spd = activations
                 self.condition.release()
             self.robot.wait(self.period + start_time - time())
 
     def _average(self):
         activations = array([(b.left_wheel, b.right_wheel, b.activation)
                              for b in self.behaviors.values()])
-        activations = average(
-            activations[:, :2], weights=activations[:, 2] + 1e-10, axis=0)
+        activations = average(activations[:, :2], weights=activations[:, 2] + 1e-10, axis=0)
         return activations
 
     def _random(self):

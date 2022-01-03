@@ -64,7 +64,7 @@ class Simulator:
                     "id": agent.id,
                     "type": "epuck",
                     "initial_coordinates": [[random.random(), random.random()], random.random()],
-                    "radius": random.random()
+                    "radius": 15
                 } for agent in self.agents
             ]
         }
