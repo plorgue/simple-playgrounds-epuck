@@ -4,10 +4,7 @@ from simple_playgrounds.agent.agents import BaseAgent, Eye, MobilePlatform
 from simple_playgrounds.device.sensors import SemanticCones
 from typing import Dict
 
-import cv2
-import time
-
-import math
+import cv2, time, math
 
 from controllers.remote_controller import RemoteController
 
@@ -23,24 +20,13 @@ class SpgService:
     state_simulator: str
     engine: Engine
 
+    done = False
+
     def __init__(self):
         # Initialize simple simulator with a room and a base agent
         self.playground = SingleRoom(size=(500, 500))
         self.controllers = {}
         self.state_simulator = self.STATE_STOPPED
-
-    def set_speed(self, name, speed):
-        """
-        name:    agent name
-        speed:   {left: float between -1 and 1, right: foat between -1 and 1}
-        """
-        velocity = (speed["left"] + speed["right"]) / 2
-        rotation = (speed["left"] - speed["right"]) / 2
-        print(self.controllers)
-        self.controllers[name].velocity = max(min(velocity, 1), -1)
-        self.controllers[name].rotation_velocity = max(min(rotation, 1), -1)
-
-        return velocity, rotation
 
     def start_simulation(self, agents=None, playground={"size": (600, 600)}, showImage=True):
         if self.state_simulator != self.STATE_RUNNING:
@@ -54,19 +40,24 @@ class SpgService:
             self.engine = Engine(time_limit=10000, playground=self.playground)
             self.state_simulator = self.STATE_RUNNING
             if showImage:
-                for agent in self.playground.agents:
-                    while True:
+                self.done = False
+                agent = None
+                if len(self.playground.agents):
+                    agent = self.playground.agents[0]
+                while not self.done:
+                    actions = {}
+                    if agent != None:
                         actions = {agent: agent.controller.generate_actions()}
-                        self.engine.step(actions)
+                    self.engine.step(actions)
+                    self.engine.update_observations()
 
-                        cv2.imshow(
-                            'playground',
-                            self.get_image()[:, :, ::-1]
-                        )
+                    cv2.imshow('playground', self.get_image()[:,:,::-1])
 
-                        cv2.waitKey(1)
+                    key = cv2.waitKey(1)
+                    self.done = key == 113 or key == 27
 
-                        time.sleep(0.05)
+                    time.sleep(0.05)
+                cv2.destroyWindow('playground')
             else:
                 self.engine.run()
             self.engine.terminate()
@@ -76,6 +67,22 @@ class SpgService:
 
     def get_image(self):
         return self.engine.generate_playground_image()
+    
+    def get_simulator_state(self):
+        return self.state_simulator
+
+    def stop_simulator(self):
+        self.done = True
+        self.playground.done = True
+        self.state_simulator = self.STATE_WAITING
+
+    def reset_simulator(self):
+        self.playground.reset()
+        self.playground = SingleRoom(size=(600, 600))
+        self.controllers = {}
+        self.engine.terminate()
+        self.state_simulator = self.STATE_STOPPED
+
 
     def add_agent(
         self, id, initial_coordinates=((0.5, 0.5), 0), radius=12, type="epuck"
@@ -93,8 +100,8 @@ class SpgService:
         """
 
         aController = RemoteController()
-
         agent = BaseAgent(controller=aController, name=f"{type}__{id}", radius=radius)
+        self.controllers[agent.name] = aController
 
         left_eye = Eye(agent.base_platform, angle_offset=-math.pi / 4)
         right_eye = Eye(agent.base_platform, angle_offset=math.pi / 4)
@@ -140,27 +147,8 @@ class SpgService:
                 initial_coordinates[1],
             )
 
-        self.controllers[agent.name] = aController
-
     def get_agents_names(self):
         return [agent.name for agent in self.playground.agents]
-
-    # def get_agents_position(self):
-    #     return {agent.name: agent.coordinates for agent in self.playground.agents}
-
-    # def get_agents_velocity(self):
-    #     print(self.playground.agents[0].velocity)
-    #     return {
-    #         agent.name: {"velocity": agent.velocity, "rotation": agent.angular_velocity}
-    #         for agent in self.playground.agents
-    #     }
-
-    # def get_agent_sensors(self, name):
-    #     agent: BaseAgent
-    #     for agt in self.playground.agents:
-    #         if agt.name == name:
-    #             agent = agt
-    #     return {"agent": name, "sensors": [sensor.name for sensor in agent.sensors]}
 
     def get_agent_sensors_value(self, agent_name, mode="closest"):
         MODES = ["closest", "all"]
@@ -204,26 +192,45 @@ class SpgService:
         if mode == "closest":
             closest_sensors = {}
             for name in sensors:
-                closest = {"dist": 1}
-                for detection in sensors[name]:
-                    if detection["dist"] <= closest["dist"]:
-                        closest = detection
-                closest_sensors[name] = closest
+                if len(sensors[name]) > 0:
+                    closest = {"dist": 1}
+                    for detection in sensors[name]:
+                        if detection["dist"] <= closest["dist"]:
+                            closest = detection
+                    closest_sensors[name] = closest
+                else:
+                    closest_sensors[name] = {}
             return closest_sensors
 
         if mode == "all":
             return sensors
+    
+    def set_speed(self, name, speed):
+        """
+        name:    agent name
+        speed:   {left: float between -1 and 1, right: foat between -1 and 1}
+        """
+        velocity = (speed["left"] + speed["right"]) / 2
+        rotation = (speed["left"] - speed["right"]) / 2
+        print(self.controllers)
+        self.controllers[name].velocity = max(min(velocity, 1), -1)
+        self.controllers[name].rotation_velocity = max(min(rotation, 1), -1)
 
-    def get_simulator_state(self):
-        return self.state_simulator
+        return velocity, rotation
+ 
+    # def get_agents_position(self):
+    #     return {agent.name: agent.coordinates for agent in self.playground.agents}
 
-    def stop_simulator(self):
-        self.playground.done = True
-        self.state_simulator = self.STATE_WAITING
+    # def get_agents_velocity(self):
+    #     print(self.playground.agents[0].velocity)
+    #     return {
+    #         agent.name: {"velocity": agent.velocity, "rotation": agent.angular_velocity}
+    #         for agent in self.playground.agents
+    #     }
 
-    def reset_simulator(self):
-        self.playground.reset()
-        self.playground = SingleRoom(size=(600, 600))
-        self.controllers = {}
-        self.engine.terminate()
-        self.state_simulator = self.STATE_STOPPED
+    # def get_agent_sensors(self, name):
+    #     agent: BaseAgent
+    #     for agt in self.playground.agents:
+    #         if agt.name == name:
+    #             agent = agt
+    #     return {"agent": name, "sensors": [sensor.name for sensor in agent.sensors]}

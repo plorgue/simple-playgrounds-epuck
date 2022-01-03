@@ -1,4 +1,5 @@
 import random
+from flask.wrappers import Response
 
 import requests
 from requests.sessions import InvalidSchema
@@ -50,10 +51,10 @@ class Simulator:
         self.agents.append(agent)
         return agent
 
-    def _send_request(self, method, request_type, **kwargs):
+    def _send_request(self, method, request_type, **kwargs) -> Response:
         if method not in self._allowed_request_methods:
             raise ValueError(f"The request should have a valid method")
-        self._session.request(method, ''.join(
+        return self._session.request(method, ''.join(
             (self._url, request_type)), json=kwargs)
 
     def start(self):

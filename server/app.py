@@ -23,7 +23,7 @@ def open_session():
     return Response(status=200)
 
 
-@app.route("/change-speed", methods=["POST"])
+@app.route("/agent/change-speed", methods=["POST"])
 def change_speed():
     if request.method == "POST":
         data = request.get_json().get('json')
@@ -48,11 +48,12 @@ def change_speed():
         return jsonify(success=False)
 
 
-@app.route("/stop-session", methods=["POST"])
+@app.route("/close-session", methods=["POST"])
 def stop_simulator():
     if request.method == "POST":
         if spg.state_simulator == spg.STATE_RUNNING:
             spg.stop_simulator()
+            spg.reset_simulator()
             return jsonify(success=True)
     return jsonify(success=False)
 
@@ -75,13 +76,18 @@ def agents():
 @app.route("/agent/prox-activations")
 def agent_sensor_value():
     if request.method == "GET":
-        agent_name = request.json.get("agent_name")
+        
+        data = request.get_json().get('json')
+        agent_name = None
+        if type(data) is dict:
+            agent_name = data.get('agent_name')
 
         if spg.state_simulator == spg.STATE_STOPPED:
             return Response(status=500)
         elif agent_name:
             try:
-                return spg.get_agent_sensors_value(agent_name)
+                detect = spg.get_agent_sensors_value(agent_name)
+                return  jsonify({"data": {**detect}})
             except ValueError as e:
                 return Response(str(e), status=404)
         else:

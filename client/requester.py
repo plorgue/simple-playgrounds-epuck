@@ -1,3 +1,7 @@
+"""
+Script for debug
+"""
+
 import requests
 
 # Should be defined inside the library and changed if ever the 2D simulator is run on another host
@@ -26,15 +30,14 @@ def set_speed(data):
     return response
 
 
-def start_simulator(nb_agent=1, sensor=None):
-    print(open_session)
+def start_simulator():
     data = {
         "agents": [
             {
                 "id": 0,
                 "type": "epuck",
                 "initial_coordinates": [[0.5, 0.5], 0],
-                "radius": 0.2
+                "radius": 15
             }
         ]
     }

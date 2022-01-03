@@ -10,32 +10,24 @@ import threading, time
 
 
 @pytest.mark.skip
-def stop_simulator_test(spg_service, assertions):
-    time.sleep(0.5)
-    spg_service.stop_simulator()
-    assertions.append(["nb_agent", len(spg_service.engine.playground.agents), 0])
+def stop_simulator_test(spg_service):
+    spg_service.start_simulation()
 
 
 def test_start_stop_simulator():
     spg_service = SpgService()
-    assertions = []
     thread = threading.Thread(
         target=stop_simulator_test,
-        args=(
-            spg_service,
-            assertions,
-        ),
+        args=(spg_service,),
     )
     thread.start()
-    spg_service.start_simulation(showImage=False)
-    thread.join()
 
-    assert len(assertions) == 1
-    for assertion in assertions:
-        assert assertion[0] + ": " + str(assertion[1]) == assertion[0] + ": " + str(
-            assertion[2]
-        )
+    time.sleep(1)
+    spg_service.stop_simulator()
+    spg_service.reset_simulator()
 
+    assert len(spg_service.playground.agents) == 0
+    assert spg_service.done == True
 
 def test_add_agent():
     id = 0

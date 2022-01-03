@@ -5,7 +5,8 @@ from threading import Condition
 from behavior import Behavior, BehaviorMixer
 
 
-CHANGE_SPEED_URL = 'change-speed'
+CHANGE_SPEED_URL = 'agent/change-speed'
+GET_SENSOR_VALUES_URL = 'agent/prox-activations'
 
 
 class Agent:
@@ -114,8 +115,17 @@ class Agent:
     def wait(self, seconds):
         sleep(seconds)
 
-    def prox_activations(self, tracked_objects=None, return_epucks=False):
-        raise NotImplemented("This function has not yet been implemented")
+    def prox_activations(self, tracked_objects=None): #, return_epucks=False
+        sensor = self._simulator._send_request(
+            'GET',
+            GET_SENSOR_VALUES_URL,
+            json={
+                "agent_name": f"{self.type}__{self.id}",
+            }   
+        )
+        if sensor.status_code == 200:
+            return sensor.json().get('data')
+
 
     def attach_behavior(self, callback, freq):
         self._behaviors[callback] = Behavior(
@@ -143,3 +153,4 @@ class Agent:
 
     def detach_all_behaviors(self):
         self._detach_all(self._behaviors)
+        
