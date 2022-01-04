@@ -14,7 +14,7 @@ app.logger.setLevel(logging.INFO)
 spg = SpgService()
 
 
-@app.route("/open-session", methods=["GET"])
+@app.route("/simulator/open", methods=["GET"])
 def open_session():
     data = request.get_json().get('json')
 
@@ -48,7 +48,7 @@ def change_speed():
         return jsonify(success=False)
 
 
-@app.route("/close-session", methods=["POST"])
+@app.route("/simulator/close", methods=["POST"])
 def stop_simulator():
     if request.method == "POST":
         if spg.state_simulator == spg.STATE_RUNNING:
@@ -58,7 +58,7 @@ def stop_simulator():
     return jsonify(success=False)
 
 
-@app.route("/reset-session", methods=["POST"])
+@app.route("/simulator/reset", methods=["POST"])
 def reset_simulator():
     if request.method == "POST":
         if spg.state_simulator == spg.STATE_WAITING:
@@ -93,6 +93,10 @@ def agent_sensor_value():
         else:
             return Response(status=400)
 
+@app.route("/simulator")
+def simulator_status():
+    if request.method == "GET":
+        return jsonify({"data": {"status": spg.state_simulator}})
 
 # @app.route("/agents/speed")
 # def agents_speed():

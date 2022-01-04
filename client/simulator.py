@@ -2,13 +2,13 @@ import random
 from flask.wrappers import Response
 
 import requests
-from requests.sessions import InvalidSchema
 from agent import Agent
 
 
-OPEN_SESSION_URL = 'open-session'
-CLOSE_SESSION_URL = 'close-session'
-RESET_SIMULATOR_URL = 'reset-simulator'
+OPEN_SESSION_URL = 'simulator/open'
+CLOSE_SESSION_URL = 'simulator/close'
+RESET_SIMULATOR_URL = 'simulator/reset'
+STATE_SIMULATOR = 'simulator'
 
 
 def get_session(nb_agents=1, old_simulator=None):
@@ -71,6 +71,12 @@ class Simulator:
 
         resp = self._send_request('GET', OPEN_SESSION_URL, json=data)
         return resp
+    
+    def status(self):
+        resp = self._send_request('GET', STATE_SIMULATOR)
+        if resp.status_code == 200:
+            return resp.json().get('data', {}).get('status', None)
+        return None
 
     def reset(self) -> None:
         self._send_request('POST', RESET_SIMULATOR_URL)
