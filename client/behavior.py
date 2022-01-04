@@ -50,6 +50,7 @@ class Routine(ParralelClass):
     def _terminate(self):
         self._to_terminate.set()
 
+
 class Behavior(Routine):
 
     def __init__(self, robot, callback, condition, freq):

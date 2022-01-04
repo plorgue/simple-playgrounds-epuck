@@ -20,10 +20,11 @@ def get_session(nb_agents=1, old_simulator=None):
     agents = [simulator.create_agent(agent_id) for agent_id in range(nb_agents)]
 
     try:
-        simulator.start()
+        response = simulator.start()
+        assert response.status_code == 200
     except Exception as e:
         raise Exception(
-            f"Encountered an exception while trying to start the simulator: {e}"
+            f"Encountered an exception while trying to start the simulator. Are you sure the server is running?\n {e}"
         ) from None
 
     if nb_agents == 1:

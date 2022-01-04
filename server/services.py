@@ -10,7 +10,6 @@ from controllers.remote_controller import RemoteController
 
 
 class SpgService:
-
     STATE_RUNNING = "running"
     STATE_STOPPED = "stop"
     STATE_WAITING = "waiting"
@@ -46,18 +45,19 @@ class SpgService:
                     agent = self.playground.agents[0]
                 while not self.done:
                     actions = {}
-                    if agent != None:
+                    if agent is not None:
                         actions = {agent: agent.controller.generate_actions()}
                     self.engine.step(actions)
                     self.engine.update_observations()
 
-                    cv2.imshow('playground', self.get_image()[:,:,::-1])
+                    cv2.imshow('playground', self.get_image()[:, :, ::-1])
 
-                    key = cv2.waitKey(1)
-                    self.done = key == 113 or key == 27
+                    if cv2.waitKey(1) in (113, 27):
+                        self.done = True
 
                     time.sleep(0.05)
                 cv2.destroyWindow('playground')
+                cv2.waitKey(1)
             else:
                 self.engine.run()
             self.engine.terminate()
@@ -67,12 +67,13 @@ class SpgService:
 
     def get_image(self):
         return self.engine.generate_playground_image()
-    
+
     def get_simulator_state(self):
         return self.state_simulator
 
     def stop_simulator(self):
         self.done = True
+        print(self.done)
         self.playground.done = True
         self.state_simulator = self.STATE_WAITING
 
@@ -83,9 +84,8 @@ class SpgService:
         self.engine.terminate()
         self.state_simulator = self.STATE_STOPPED
 
-
     def add_agent(
-        self, id, initial_coordinates=((0.5, 0.5), 0), radius=12, type="epuck"
+            self, id, initial_coordinates=((0.5, 0.5), 0), radius=12, type="epuck"
     ):
         """
         Add an BaseAgent with to 2 sensors SemanticCones attached to 2 eyes
@@ -138,7 +138,7 @@ class SpgService:
         if initial_coordinates[0][0] > 1 or initial_coordinates[0][1] > 1:
             # position not normalized
             agent.initial_coordinates = initial_coordinates
-        else: 
+        else:
             agent.initial_coordinates = (
                 (
                     int(initial_coordinates[0][0] * self.playground.size[0]),
@@ -204,7 +204,7 @@ class SpgService:
 
         if mode == "all":
             return sensors
-    
+
     def set_speed(self, name, speed):
         """
         name:    agent name
@@ -212,12 +212,11 @@ class SpgService:
         """
         velocity = (speed["left"] + speed["right"]) / 2
         rotation = (speed["left"] - speed["right"]) / 2
-        print(self.controllers)
         self.controllers[name].velocity = max(min(velocity, 1), -1)
         self.controllers[name].rotation_velocity = max(min(rotation, 1), -1)
 
         return velocity, rotation
- 
+
     # def get_agents_position(self):
     #     return {agent.name: agent.coordinates for agent in self.playground.agents}
 
