@@ -91,20 +91,17 @@ def test_get_agents_names(id, type):
         assert len(spg_service.get_agents_names()) == 1
         assert spg_service.get_agents_names()[0] == f"epuck__{id}"
 
-
 @pytest.mark.skip
-def sensors_value_all(spg_service, assertions, main_id, left_ids, right_ids):
-    time.sleep(2.5)
-
-    detections = spg_service.get_agent_sensors_value(f"epuck__{main_id}", "all")
-
-    left = [int(obj["id"]) for obj in detections["left"] if obj["isagent"]]
-    right = [int(obj["id"]) for obj in detections["right"] if obj["isagent"]]
-
-    assertions.append(["left_sensor_detection", left_ids, left])
-    assertions.append(["right_sensor_detection", right_ids, right])
-
-    spg_service.stop_simulator()
+def sensors_value_all(spg_service, main_agent, agents_detected_on_left, agents_detected_on_right, agents_not_detected):
+    spg_service.start_simulation(
+        agents=[
+            main_agent,
+            *agents_detected_on_left,
+            *agents_detected_on_right,
+            *agents_not_detected,
+        ],
+        playground={"size": (500, 500)},
+    )
 
 
 def test_sensors_value_all():
@@ -169,33 +166,27 @@ def test_sensors_value_all():
     ]
 
     spg_service = SpgService()
-    assertions = []
     main_id = main_agent["id"]
     left_ids = [agt["id"] for agt in agents_detected_on_left]
     right_ids = [agt["id"] for agt in agents_detected_on_right]
 
     thread = threading.Thread(
         target=sensors_value_all,
-        args=(spg_service, assertions, main_id, left_ids, right_ids),
+        args=(spg_service, main_agent, agents_detected_on_left, agents_detected_on_right, agents_not_detected),
     )
     thread.start()
-    spg_service.start_simulation(
-        agents=[
-            main_agent,
-            *agents_detected_on_left,
-            *agents_detected_on_right,
-            *agents_not_detected,
-        ],
-        playground={"size": (500, 500)},
-        show_image=False
-    )
-    thread.join()
 
-    assert len(assertions) == 2
-    for assertion in assertions:
-        assert assertion[0] + ": " + str(assertion[1]) == assertion[0] + ": " + str(
-            assertion[2]
-        )
+    time.sleep(2)
+
+    detections = spg_service.get_agent_sensors_value(f"epuck__{main_id}", "all")
+
+    left = [int(obj["id"]) for obj in detections["left"] if obj["is_agent"]]
+    right = [int(obj["id"]) for obj in detections["right"] if obj["is_agent"]]
+
+    assert left_ids == left
+    assert right_ids == right
+
+    spg_service.stop_simulator()
 
 
 ####  SKIPPED  ####
