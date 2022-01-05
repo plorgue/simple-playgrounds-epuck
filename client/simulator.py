@@ -11,13 +11,20 @@ RESET_SIMULATOR_URL = 'simulator/reset'
 STATE_SIMULATOR = 'simulator'
 
 
-def get_session(nb_agents=1, old_simulator=None):
+def get_session(nb_agents=1, old_simulator=None, agent_types=[]):
     if old_simulator is not None:
         old_simulator.stop()
         del old_simulator
 
     simulator = Simulator()
-    agents = [simulator.create_agent(agent_id) for agent_id in range(nb_agents)]
+
+    agents = []
+    for agent_id in range(nb_agents):
+        if agent_id < len(agent_types):
+            agents.append(simulator.create_agent(agent_id=agent_id, type=agent_types[agent_id]))
+        else:
+            agents.append(simulator.create_agent(agent_id=agent_id))
+
 
     try:
         response = simulator.start()
@@ -49,8 +56,8 @@ class Simulator:
         self._url = ''.join(('http://', host, ':', str(port), '/'))
         self._allowed_request_methods = ('POST', 'GET', 'DELETE', 'PUT')
 
-    def create_agent(self, agent_id):
-        agent = Agent(self, agent_id)
+    def create_agent(self, agent_id, type):
+        agent = Agent(self, agent_id=agent_id, agent_type=type)
         self.agents.append(agent)
         return agent
 
@@ -65,9 +72,9 @@ class Simulator:
             "agents": [
                 {
                     "id": agent.id,
-                    "type": "epuck",
+                    "type": agent.type,
                     "initial_coordinates": [[random.random(), random.random()], random.random()],
-                    "radius": 15
+                    "radius": 10
                     # "used_proximeters": agent.used_proximeters,
                 } for agent in self.agents
             ]

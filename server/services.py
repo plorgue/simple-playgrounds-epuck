@@ -146,7 +146,7 @@ class SpgService:
             agent.initial_coordinates = (
                 (
                     int(initial_coordinates[0][0] * self.playground.size[0]),
-                    int(initial_coordinates[0][0] * self.playground.size[1]),
+                    int(initial_coordinates[0][1] * self.playground.size[1]),
                 ),
                 initial_coordinates[1],
             )

@@ -18,7 +18,7 @@ class Agent:
         self._simulator = simulator
         self.id = agent_id
         self.freq = freq
-        self.type = agent_type
+        self.type = agent_type if agent_type is not None else "epuck" 
         self._no_detection_value = 2000.
         self.max_speed = 10.
         self._behaviors = {}
@@ -131,6 +131,8 @@ class Agent:
         )
         if response.status_code == 200:
             proximeters = response.json()
+            if tracked_objects is not None:
+                return [prox.get("dist", 1) if prox.get("type", None) in tracked_objects else 1 for prox in proximeters.values()]
             return [prox.get("dist", 1) for prox in proximeters.values()]
         else: raise Exception("Could not get activations")
 
