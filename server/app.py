@@ -87,11 +87,12 @@ def agent_sensor_value():
         elif agent_name:
             try:
                 detect = spg.get_agent_sensors_value(agent_name)
-                return  jsonify({"data": {**detect}})
+                return jsonify(detect)
             except ValueError as e:
                 return Response(str(e), status=404)
         else:
             return Response(status=400)
+
 
 @app.route("/simulator")
 def simulator_status():

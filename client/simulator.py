@@ -30,6 +30,7 @@ def get_session(nb_agents=1, old_simulator=None):
     if nb_agents == 1:
         return simulator, agents[0]
     else:
+        # noinspection PyTypeChecker
         return [simulator] + agents
 
 
@@ -44,6 +45,7 @@ class Simulator:
     def __init__(self, host='127.0.0.1', port=5000) -> None:
         self.agents = []
         self._session = requests.Session()
+        # noinspection PyTypeChecker
         self._url = ''.join(('http://', host, ':', str(port), '/'))
         self._allowed_request_methods = ('POST', 'GET', 'DELETE', 'PUT')
 
@@ -66,6 +68,7 @@ class Simulator:
                     "type": "epuck",
                     "initial_coordinates": [[random.random(), random.random()], random.random()],
                     "radius": 15
+                    # "used_proximeters": agent.used_proximeters,
                 } for agent in self.agents
             ]
         }

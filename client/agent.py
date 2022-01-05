@@ -1,3 +1,4 @@
+import time
 from copy import copy
 from time import sleep
 
@@ -11,7 +12,7 @@ GET_SENSOR_VALUES_URL = 'agent/prox-activations'
 
 class Agent:
 
-    def __init__(self, simulator, agent_id, agent_type="epuck", freq=10.) -> None:
+    def __init__(self, simulator, agent_id, use_proximeters=list(range(2)), agent_type="epuck", freq=1.) -> None:
         self._right_spd = 0.
         self._left_spd = 0.
         self._simulator = simulator
@@ -25,6 +26,7 @@ class Agent:
         self._behavior_mixer = BehaviorMixer(self)
         self._behavior_mixer.start()
         self._conditions = {}
+        self.used_proximeters = use_proximeters
 
     @property
     def left_spd(self):
@@ -50,7 +52,8 @@ class Agent:
 
     @left_wheel.setter
     def left_wheel(self, value):
-        self._left_spd = value * self.max_speed
+        self._left_spd = copy(value * self.max_speed)
+        self._set_remote_speed()
 
     @property
     def right_wheel(self):
@@ -58,7 +61,8 @@ class Agent:
 
     @right_wheel.setter
     def right_wheel(self, value):
-        self._right_spd = value * self.max_speed
+        self._right_spd = copy(value * self.max_speed)
+        self._set_remote_speed()
         
     def _set_remote_speed(self):
         self._simulator._send_request(
@@ -113,18 +117,22 @@ class Agent:
         self.right_wheel, self.left_wheel = 0., 0.
 
     def wait(self, seconds):
-        sleep(seconds)
+        start = time.time()
+        while time.time() - start < seconds:
+            sleep(0.005)
 
     def prox_activations(self, tracked_objects=None): #, return_epucks=False
-        sensor = self._simulator._send_request(
+        response = self._simulator._send_request(
             'GET',
             GET_SENSOR_VALUES_URL,
             json={
                 "agent_name": f"{self.type}__{self.id}",
             }   
         )
-        if sensor.status_code == 200:
-            return sensor.json().get('data')
+        if response.status_code == 200:
+            proximeters = response.json()
+            return [prox.get("dist", 1) for prox in proximeters.values()]
+        else: raise Exception("Could not get activations")
 
 
     def attach_behavior(self, callback, freq):

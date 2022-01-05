@@ -1,10 +1,12 @@
-from simple_playgrounds.playground import SingleRoom
-from simple_playgrounds.engine import Engine
-from simple_playgrounds.agent.agents import BaseAgent, Eye, MobilePlatform
-from simple_playgrounds.device.sensors import SemanticCones
 from typing import Dict
 
-import cv2, time, math
+import cv2
+import math
+import time
+from simple_playgrounds.agent.agents import BaseAgent, Eye, MobilePlatform
+from simple_playgrounds.device.sensors import SemanticCones
+from simple_playgrounds.engine import Engine
+from simple_playgrounds.playground import SingleRoom
 
 from controllers.remote_controller import RemoteController
 
@@ -27,7 +29,9 @@ class SpgService:
         self.controllers = {}
         self.state_simulator = self.STATE_STOPPED
 
-    def start_simulation(self, agents=None, playground={"size": (600, 600)}, showImage=True):
+    def start_simulation(self, agents=None, playground=None, show_image=True):
+        if playground is None:
+            playground = {"size": (600, 600)}
         if self.state_simulator != self.STATE_RUNNING:
 
             self.playground = SingleRoom(size=playground["size"])
@@ -38,15 +42,12 @@ class SpgService:
 
             self.engine = Engine(time_limit=10000, playground=self.playground)
             self.state_simulator = self.STATE_RUNNING
-            if showImage:
+            if show_image:
                 self.done = False
-                agent = None
-                if len(self.playground.agents):
-                    agent = self.playground.agents[0]
                 while not self.done:
                     actions = {}
-                    if agent is not None:
-                        actions = {agent: agent.controller.generate_actions()}
+                    for agent in self.playground.agents:
+                        actions[agent] = agent.controller.generate_actions()
                     self.engine.step(actions)
                     self.engine.update_observations()
 
@@ -73,7 +74,6 @@ class SpgService:
 
     def stop_simulator(self):
         self.done = True
-        print(self.done)
         self.playground.done = True
         self.state_simulator = self.STATE_WAITING
 
@@ -85,11 +85,15 @@ class SpgService:
         self.state_simulator = self.STATE_STOPPED
 
     def add_agent(
-            self, id, initial_coordinates=((0.5, 0.5), 0), radius=12, type="epuck"
+            self,
+            id,
+            initial_coordinates=((0.5, 0.5), 0),
+            radius=12,
+            type="epuck"
     ):
         """
-        Add an BaseAgent with to 2 sensors SemanticCones attached to 2 eyes
-        SemaanticCones detecte object over 180 degrees in front of the agent.
+        Add an BaseAgent with 2 sensors SemanticCones attached to 2 eyes
+        SemanticCones detect object over 180 degrees in front of the agent.
         The left sensor covers 90° on the front left and the right sensor 90° on the front right
 
         Args:
@@ -99,9 +103,9 @@ class SpgService:
             type: String
         """
 
-        aController = RemoteController()
-        agent = BaseAgent(controller=aController, name=f"{type}__{id}", radius=radius)
-        self.controllers[agent.name] = aController
+        a_controller = RemoteController()
+        agent = BaseAgent(controller=a_controller, name=f"{type}__{id}", radius=radius)
+        self.controllers[agent.name] = a_controller
 
         left_eye = Eye(agent.base_platform, angle_offset=-math.pi / 4)
         right_eye = Eye(agent.base_platform, angle_offset=math.pi / 4)
@@ -151,8 +155,8 @@ class SpgService:
         return [agent.name for agent in self.playground.agents]
 
     def get_agent_sensors_value(self, agent_name, mode="closest"):
-        MODES = ["closest", "all"]
-        assert mode in MODES, f"Modes available {MODES[0]} {MODES[1]}"
+        modes = ["closest", "all"]
+        assert mode in modes, f"Modes available {modes[0]} {modes[1]}"
 
         agent = None
         for agt in self.playground.agents:
@@ -167,10 +171,10 @@ class SpgService:
             a_sensor = []
             obj_detected = []
             for detection in sensor.sensor_values:
-                isagent = isinstance(detection[0], MobilePlatform)
+                is_agent = isinstance(detection[0], MobilePlatform)
 
                 type = None
-                if isagent:
+                if is_agent:
                     type, id = detection[0].agent.name.split("__")
                 else:
                     id = detection[0].name
@@ -178,7 +182,7 @@ class SpgService:
                 if id not in obj_detected:
                     a_sensor.append(
                         {
-                            "isagent": isagent,
+                            "is_agent": is_agent,
                             "type": type,
                             "id": id,
                             "dist": detection[1],
@@ -208,7 +212,7 @@ class SpgService:
     def set_speed(self, name, speed):
         """
         name:    agent name
-        speed:   {left: float between -1 and 1, right: foat between -1 and 1}
+        speed:   {left: float between -1 and 1, right: float between -1 and 1}
         """
         velocity = (speed["left"] + speed["right"]) / 2
         rotation = (speed["left"] - speed["right"]) / 2

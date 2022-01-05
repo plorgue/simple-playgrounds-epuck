@@ -98,7 +98,7 @@ class BehaviorMixer(ParralelClass):
                         activations = self._average()
                     else:
                         print(self.mode, "is not a valid mode. Choices are \"random\" or \"average\"")
-                self.robot.left_spd, self.robot.right_spd = activations
+                self.robot.left_wheel, self.robot.right_wheel = activations
                 self.condition.release()
             self.robot.wait(self.period + start_time - time())
 

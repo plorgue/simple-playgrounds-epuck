@@ -1,6 +1,8 @@
 from functools import partial
 
 from simulator import get_session as gs
+
+# noinspection PyUnresolvedReferences
 from simulator import close_session
 
 

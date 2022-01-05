@@ -103,7 +103,7 @@ def sensors_value_all(spg_service, assertions, main_id, left_ids, right_ids):
 
     assertions.append(["left_sensor_detection", left_ids, left])
     assertions.append(["right_sensor_detection", right_ids, right])
-    
+
     spg_service.stop_simulator()
 
 
@@ -187,7 +187,7 @@ def test_sensors_value_all():
             *agents_not_detected,
         ],
         playground={"size": (500, 500)},
-        showImage=False
+        show_image=False
     )
     thread.join()
 
@@ -250,7 +250,7 @@ def test_get_agents_velocity(speed, expect_speed):
         ),
     )
     thread.start()
-    spg_service.start_simulation(ids=["robot_1", "robot_2"], showImage=False)
+    spg_service.start_simulation(ids=["robot_1", "robot_2"], show_image=False)
     thread.join()
 
     assert len(assertions) == 6
