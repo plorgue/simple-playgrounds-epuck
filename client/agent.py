@@ -6,21 +6,27 @@ from threading import Condition
 from behavior import Behavior, BehaviorMixer
 
 
-CHANGE_SPEED_URL = 'agent/change-speed'
-GET_SENSOR_VALUES_URL = 'agent/prox-activations'
+CHANGE_SPEED_URL = "agent/change-speed"
+GET_SENSOR_VALUES_URL = "agent/prox-activations"
 
 
 class Agent:
-
-    def __init__(self, simulator, agent_id, use_proximeters=list(range(2)), agent_type="epuck", freq=1.) -> None:
-        self._right_spd = 0.
-        self._left_spd = 0.
+    def __init__(
+        self,
+        simulator,
+        agent_id,
+        use_proximeters=list(range(2)),
+        agent_type="epuck",
+        freq=1.0,
+    ) -> None:
+        self._right_spd = 0.0
+        self._left_spd = 0.0
         self._simulator = simulator
         self.id = agent_id
         self.freq = freq
-        self.type = agent_type if agent_type is not None else "epuck" 
-        self._no_detection_value = 2000.
-        self.max_speed = 10.
+        self.type = agent_type if agent_type is not None else "epuck"
+        self._no_detection_value = 2000.0
+        self.max_speed = 10.0
         self._behaviors = {}
         self._condition = Condition()
         self._behavior_mixer = BehaviorMixer(self)
@@ -63,15 +69,15 @@ class Agent:
     def right_wheel(self, value):
         self._right_spd = copy(value * self.max_speed)
         self._set_remote_speed()
-        
+
     def _set_remote_speed(self):
         self._simulator._send_request(
-            'POST',
+            "POST",
             CHANGE_SPEED_URL,
             json={
                 "agent_id": f"{self.type}__{self.id}",
-                "new_speeds": [self.left_wheel, self.right_wheel]
-            }
+                "new_speeds": [self.left_wheel, self.right_wheel],
+            },
         )
 
     def _start(self, dictionary, callback):
@@ -110,32 +116,42 @@ class Agent:
         if not len(dictionary):
             print("No " + label.lower() + " attached")
         for callback, obj in dictionary.items():
-            print(label + " \"{name}\" is attached and {started}".format(
-                name=callback.__name__, started="STARTED" if obj._running.is_set() else "NOT STARTED."))
+            print(
+                label
+                + ' "{name}" is attached and {started}'.format(
+                    name=callback.__name__,
+                    started="STARTED" if obj._running.is_set() else "NOT STARTED.",
+                )
+            )
 
     def stop(self):
-        self.right_wheel, self.left_wheel = 0., 0.
+        self.right_wheel, self.left_wheel = 0.0, 0.0
 
     def wait(self, seconds):
         start = time.time()
         while time.time() - start < seconds:
             sleep(0.005)
 
-    def prox_activations(self, tracked_objects=None): #, return_epucks=False
+    def prox_activations(self, tracked_objects=None):  # , return_epucks=False
         response = self._simulator._send_request(
-            'GET',
+            "GET",
             GET_SENSOR_VALUES_URL,
             json={
                 "agent_name": f"{self.type}__{self.id}",
-            }   
+            },
         )
         if response.status_code == 200:
             proximeters = response.json()
             if tracked_objects is not None:
-                return [prox.get("dist", 1) if prox.get("type", None) in tracked_objects else 1 for prox in proximeters.values()]
+                return [
+                    prox.get("dist", 1)
+                    if prox.get("type", None) in tracked_objects
+                    else 1
+                    for prox in proximeters.values()
+                ]
             return [prox.get("dist", 1) for prox in proximeters.values()]
-        else: raise Exception("Could not get activations")
-
+        else:
+            raise Exception("Could not get activations")
 
     def attach_behavior(self, callback, freq):
         self._behaviors[callback] = Behavior(self, callback, self._condition, freq)
