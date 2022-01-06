@@ -11,21 +11,20 @@ RESET_SIMULATOR_URL = "simulator/reset"
 STATE_SIMULATOR = "simulator"
 
 
-def get_session(nb_agents=1, old_simulator=None, agent_types=[]):
+def get_session(nb_agents=1, old_simulator=None, agents=[]):
     if old_simulator is not None:
         old_simulator.stop()
         del old_simulator
 
     simulator = Simulator()
+    
 
-    agents = []
+    agents_created = []
     for agent_id in range(nb_agents):
-        if agent_id < len(agent_types):
-            agents.append(
-                simulator.create_agent(agent_id=agent_id, type=agent_types[agent_id])
-            )
-        else:
-            agents.append(simulator.create_agent(agent_id=agent_id))
+        arg = {}
+        if agent_id < len(agents):
+            arg = agents[agent_id]
+        agents_created.append(simulator.create_agent(agent_id=agent_id, **arg)) 
 
     try:
         response = simulator.start()
@@ -36,10 +35,10 @@ def get_session(nb_agents=1, old_simulator=None, agent_types=[]):
         ) from None
 
     if nb_agents == 1:
-        return simulator, agents[0]
+        return simulator, agents_created[0]
     else:
         # noinspection PyTypeChecker
-        return [simulator] + agents
+        return [simulator] + agents_created
 
 
 def close_session(simulator):
@@ -56,8 +55,8 @@ class Simulator:
         self._url = "".join(("http://", host, ":", str(port), "/"))
         self._allowed_request_methods = ("POST", "GET", "DELETE", "PUT")
 
-    def create_agent(self, agent_id, type):
-        agent = Agent(self, agent_id=agent_id, agent_type=type)
+    def create_agent(self, agent_id, **kwargs):
+        agent = Agent(self, agent_id=agent_id, **kwargs)
         self.agents.append(agent)
         return agent
 
@@ -74,11 +73,8 @@ class Simulator:
                 {
                     "id": agent.id,
                     "type": agent.type,
-                    "initial_coordinates": [
-                        [random.random(), random.random()],
-                        random.random(),
-                    ],
-                    "radius": 10
+                    "initial_coordinates": agent.initial_coordinates,
+                    "radius": agent.radius,
                     # "used_proximeters": agent.used_proximeters,
                 }
                 for agent in self.agents

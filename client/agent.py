@@ -2,6 +2,8 @@ import time
 from copy import copy
 from time import sleep
 
+from random import random
+
 from threading import Condition
 from behavior import Behavior, BehaviorMixer
 
@@ -16,7 +18,9 @@ class Agent:
         simulator,
         agent_id,
         use_proximeters=list(range(2)),
-        agent_type="epuck",
+        agent_type=None,
+        initial_coordinates=None,
+        radius=None,
         freq=1.0,
     ) -> None:
         self._right_spd = 0.0
@@ -25,6 +29,15 @@ class Agent:
         self.id = agent_id
         self.freq = freq
         self.type = agent_type if agent_type is not None else "epuck"
+        self.initial_coordinates = (
+            initial_coordinates
+            if initial_coordinates is not None
+            else (
+                (random(), random()),
+                random(),
+            )
+        )
+        self.radius = radius if radius is not None else 12
         self._no_detection_value = 2000.0
         self.max_speed = 10.0
         self._behaviors = {}
@@ -132,7 +145,7 @@ class Agent:
         while time.time() - start < seconds:
             sleep(0.005)
 
-    def prox_activations(self, tracked_objects=None):  # , return_epucks=False
+    def prox_activations(self, tracked_objects=None, return_epucks=False):
         response = self._simulator._send_request(
             "GET",
             GET_SENSOR_VALUES_URL,
@@ -142,14 +155,28 @@ class Agent:
         )
         if response.status_code == 200:
             proximeters = response.json()
+            activations = [1, 1]
             if tracked_objects is not None:
-                return [
-                    prox.get("dist", 1)
-                    if prox.get("type", None) in tracked_objects
+                activations = [
+                    prox.get("dist", 1) if prox.get("type", None) in tracked_objects
+                    # and prox.get("type", None) not in excluded_objects
                     else 1
                     for prox in proximeters.values()
                 ]
-            return [prox.get("dist", 1) for prox in proximeters.values()]
+            else:
+                activations = [
+                    prox.get("dist", 1)
+                    # if prox.get("type", None) not in excluded_objects
+                    # else 1
+                    for prox in proximeters.values()
+                ]
+            if return_epucks:
+                return (
+                    *activations,
+                    *[prox.get("type", None) for prox in proximeters.values()],
+                )
+            else:
+                return activations
         else:
             raise Exception("Could not get activations")
 
