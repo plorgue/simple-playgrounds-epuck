@@ -1,8 +1,8 @@
-import time
 from copy import copy
 from time import sleep
 
 from random import random
+from pprint import pprint
 
 from threading import Condition
 from behavior import Behavior, BehaviorMixer
@@ -17,12 +17,14 @@ class Agent:
         self,
         simulator,
         agent_id,
-        use_proximeters=list(range(2)),
+        use_proximeters=None,
         agent_type=None,
         initial_coordinates=None,
         radius=None,
         freq=1.0,
     ) -> None:
+        if use_proximeters is None:
+            use_proximeters = list(range(2))
         self._right_spd = 0.0
         self._left_spd = 0.0
         self._simulator = simulator
@@ -88,7 +90,7 @@ class Agent:
             "POST",
             CHANGE_SPEED_URL,
             json={
-                "agent_id": f"{self.type}__{self.id}",
+                "agent_id": f"{self.type}_{self.id}",
                 "new_speeds": [self.left_wheel, self.right_wheel],
             },
         )
@@ -141,31 +143,28 @@ class Agent:
         self.right_wheel, self.left_wheel = 0.0, 0.0
 
     def wait(self, seconds):
-        start = time.time()
-        while time.time() - start < seconds:
-            sleep(0.005)
+        self._simulator.wait(seconds)
 
     def prox_activations(self, tracked_objects=None, return_epucks=False):
         response = self._simulator._send_request(
             "GET",
             GET_SENSOR_VALUES_URL,
             json={
-                "agent_name": f"{self.type}__{self.id}",
+                "agent_name": f"{self.type}_{self.id}",
             },
         )
         if response.status_code == 200:
             proximeters = response.json()
-            activations = [1, 1]
             if tracked_objects is not None:
                 activations = [
-                    prox.get("dist", 1) if prox.get("type", None) in tracked_objects
-                    # and prox.get("type", None) not in excluded_objects
-                    else 1
+                    prox.get("dist", 0) if prox.get("type", None) in tracked_objects else 0
                     for prox in proximeters.values()
+                    # and prox.get("type", None) not in excluded_objects
+
                 ]
             else:
                 activations = [
-                    prox.get("dist", 1)
+                    prox.get("dist", 0)
                     # if prox.get("type", None) not in excluded_objects
                     # else 1
                     for prox in proximeters.values()
@@ -177,6 +176,8 @@ class Agent:
                 )
             else:
                 return activations
+
+
         else:
             raise Exception("Could not get activations")
 

@@ -105,7 +105,7 @@ class SpgService:
         """
 
         a_controller = RemoteController()
-        agent = BaseAgent(controller=a_controller, name=f"{type}__{id}", radius=radius)
+        agent = BaseAgent(controller=a_controller, name=f"{type}_{id}", radius=radius)
         self.controllers[agent.name] = a_controller
 
         left_eye = Eye(agent.base_platform, angle_offset=-math.pi / 4)
@@ -168,32 +168,31 @@ class SpgService:
             raise ValueError(f"no agent with name {agent} was found")
 
         sensors = {}
-        for sensor in agent.sensors:
+        for sensor in agent.observations.keys():
             a_sensor = []
             obj_detected = []
-            for detection in sensor.sensor_values:
-                is_agent = isinstance(detection[0], MobilePlatform)
+            for detection in agent.observations[sensor]:
+                agent_type, agent_id = None, None
+                name = detection[0].name.split("_")
 
-                type = None
-                if is_agent:
-                    type, id = detection[0].agent.name.split("__")
-                else:
-                    id = detection[0].name
+                if len(name) == 1:
+                    agent_id = name[0]
+                elif len(name) == 2:
+                    agent_type, agent_id = name
 
-                if id not in obj_detected:
+                if agent_id not in obj_detected:
                     a_sensor.append(
                         {
-                            "is_agent": is_agent,
-                            "type": type,
-                            "id": id,
+                            "is_robot": isinstance(detection[0], MobilePlatform),
+                            "type": agent_type,
+                            "id": agent_id,
                             "dist": detection[1],
                             "angle": detection[2],
                         }
                     )
-                    obj_detected.append(id)
+                    obj_detected.append(agent_id)
 
             sensors[sensor.name] = a_sensor
-
         if mode == "closest":
             closest_sensors = {}
             for name in sensors:
@@ -208,6 +207,7 @@ class SpgService:
             return closest_sensors
 
         if mode == "all":
+            print(sensors)
             return sensors
 
     def set_speed(self, name, speed):
@@ -229,8 +229,6 @@ class SpgService:
         else:
             raise NotImplementedError("functionality add_sphere not implemented for non edible elements")
         self.playground.add_element(sphere, initial_coordinates=(tuple(position), 0))
-
-
 
 
 

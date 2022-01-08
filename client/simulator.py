@@ -55,8 +55,6 @@ def close_session(simulator):
 def sphere_apparition(simulator, sizes=None, mass=0.5, eatable=True, max_pos=None, min_pos=None):
     if simulator.n_spheres is None:
         simulator.n_spheres = 0
-    if simulator.eatable_objects is None:
-        simulator.eatable_objects = []
     if sizes is None:
         sizes = [0.01, 0.01]
     if max_pos is None:
@@ -69,7 +67,7 @@ def sphere_apparition(simulator, sizes=None, mass=0.5, eatable=True, max_pos=Non
 
     position = np.random.rand(2) * (max_pos - min_pos) + min_pos
     name = "Sphere_" + str(simulator.n_spheres + 1)
-    response = simulator._send_request(
+    simulator._send_request(
         "POST",
         ADD_SPHERE_URL,
         json={
@@ -80,12 +78,7 @@ def sphere_apparition(simulator, sizes=None, mass=0.5, eatable=True, max_pos=Non
             "eatable": eatable
         }
     )
-
-    simulator.eatable_objects.append(name)
     simulator.n_spheres += 1
-    # for robot in simulator.robots:
-    #     robot.register_object(name)
-
 
 class Simulator:
     def __init__(self, host="127.0.0.1", port=5000) -> None:
