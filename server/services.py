@@ -7,6 +7,7 @@ from simple_playgrounds.agent.agents import BaseAgent, Eye, MobilePlatform
 from simple_playgrounds.device.sensors import SemanticCones
 from simple_playgrounds.engine import Engine
 from simple_playgrounds.playground import SingleRoom
+from simple_playgrounds.element.elements.edible import Apple
 
 from controllers.remote_controller import RemoteController
 
@@ -220,6 +221,18 @@ class SpgService:
         self.controllers[name].rotation_velocity = max(min(rotation, 1), -1)
 
         return velocity, rotation
+
+    def add_sphere(self, name, position, sizes, mass, eatable):
+        radius = sum(sizes) / len(sizes)  # Let's just stick to a circle shape for now
+        if eatable:
+            sphere = Apple(1.0, 1.0, 0.9, name=name, mass=mass, radius=radius)
+        else:
+            raise NotImplementedError("functionality add_sphere not implemented for non edible elements")
+        self.playground.add_element(sphere, initial_coordinates=(tuple(position), 0))
+
+
+
+
 
     # def get_agents_position(self):
     #     return {agent.name: agent.coordinates for agent in self.playground.agents}

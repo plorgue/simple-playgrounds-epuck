@@ -2,6 +2,7 @@ import logging
 import queue
 import threading
 
+import numpy as np
 from flask import Flask, jsonify, request, Response
 
 from services import SpgService
@@ -98,6 +99,27 @@ def agent_sensor_value():
 def simulator_status():
     if request.method == "GET":
         return jsonify({"data": {"status": spg.state_simulator}})
+
+
+@app.route("/simulator/add-sphere", methods=["POST"])
+def add_sphere():
+    if request.method == "POST":
+        data = request.get_json().get('json')
+        name = data["name"]
+        position = data["position"]
+        sizes = data["sizes"]
+        mass = data["mass"]
+        eatable = data["eatable"]
+        spg.add_sphere(
+            name,
+            np.array(position) * np.array(spg.playground.size),
+            np.array(sizes) * np.array(spg.playground.size),
+            mass,
+            eatable
+        )
+        return jsonify(success=True)
+    return jsonify(success=False)
+
 
 # @app.route("/agents/speed")
 # def agents_speed():
