@@ -168,12 +168,18 @@ class SpgService:
             raise ValueError(f"no agent with name {agent} was found")
 
         sensors = {}
+
         for sensor in agent.observations.keys():
             a_sensor = []
             obj_detected = []
             for detection in agent.observations[sensor]:
                 agent_type, agent_id = None, None
-                name = detection[0].name.split("_")
+                is_robot = isinstance(detection[0], MobilePlatform)
+
+                if is_robot:
+                    name = detection[0].agent.name.split("_")
+                else: 
+                    name = detection[0].name.split("_")
 
                 if len(name) == 1:
                     agent_id = name[0]
@@ -183,7 +189,7 @@ class SpgService:
                 if agent_id not in obj_detected:
                     a_sensor.append(
                         {
-                            "is_robot": isinstance(detection[0], MobilePlatform),
+                            "is_robot": is_robot,
                             "type": agent_type,
                             "id": agent_id,
                             "dist": detection[1],

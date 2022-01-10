@@ -40,7 +40,7 @@ def test_add_agent():
     )
 
     assert len(spg_service.playground.agents) == 1
-    assert spg_service.playground.agents[0].name == f"{type}__{id}"
+    assert spg_service.playground.agents[0].name == f"{type}_{id}"
     assert (
         spg_service.playground.agents[0].initial_coordinates[1]
         == initial_coordinates[1]
@@ -85,11 +85,11 @@ def test_get_agents_names(id, type):
     if type:
         spg_service.add_agent(id=id, type=type)
         assert len(spg_service.get_agents_names()) == 1
-        assert spg_service.get_agents_names()[0] == f"{type}__{id}"
+        assert spg_service.get_agents_names()[0] == f"{type}_{id}"
     else:
         spg_service.add_agent(id=id)
         assert len(spg_service.get_agents_names()) == 1
-        assert spg_service.get_agents_names()[0] == f"epuck__{id}"
+        assert spg_service.get_agents_names()[0] == f"epuck_{id}"
 
 @pytest.mark.skip
 def sensors_value_all(spg_service, main_agent, agents_detected_on_left, agents_detected_on_right, agents_not_detected):
@@ -178,10 +178,10 @@ def test_sensors_value_all():
 
     time.sleep(2)
 
-    detections = spg_service.get_agent_sensors_value(f"epuck__{main_id}", "all")
+    detections = spg_service.get_agent_sensors_value(f"epuck_{main_id}", "all")
 
-    left = [int(obj["id"]) for obj in detections["left"] if obj["is_agent"]]
-    right = [int(obj["id"]) for obj in detections["right"] if obj["is_agent"]]
+    left = [int(obj["id"]) for obj in detections["left"] if obj["is_robot"]]
+    right = [int(obj["id"]) for obj in detections["right"] if obj["is_robot"]]
 
     assert left_ids == left
     assert right_ids == right
