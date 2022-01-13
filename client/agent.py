@@ -145,7 +145,7 @@ class Agent:
     def wait(self, seconds):
         self._simulator.wait(seconds)
 
-    def prox_activations(self, tracked_objects=None, return_epucks=False):
+    def prox_activations(self, tracked_objects=None, excluded_objects=[], return_epucks=False):
         response = self._simulator._send_request(
             "GET",
             GET_SENSOR_VALUES_URL,
@@ -157,16 +157,18 @@ class Agent:
             proximeters = response.json()
             if tracked_objects is not None:
                 activations = [
-                    prox.get("dist", 0) if prox.get("type", None) in tracked_objects else 0
+                    prox.get("dist", 0) 
+                    if prox.get("type", None) in tracked_objects 
+                    and prox.get("type", None) not in excluded_objects
+                    else 0
                     for prox in proximeters.values()
-                    # and prox.get("type", None) not in excluded_objects
 
                 ]
             else:
                 activations = [
                     prox.get("dist", 0)
-                    # if prox.get("type", None) not in excluded_objects
-                    # else 1
+                    if prox.get("type", None) not in excluded_objects
+                    else 0
                     for prox in proximeters.values()
                 ]
             if return_epucks:

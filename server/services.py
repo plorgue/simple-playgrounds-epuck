@@ -1,6 +1,8 @@
+from tracemalloc import start
 from typing import Dict
 
 import cv2
+import numpy as np
 import math
 import time
 from simple_playgrounds.agent.agents import BaseAgent, Eye, MobilePlatform
@@ -30,7 +32,7 @@ class SpgService:
         self.controllers = {}
         self.state_simulator = self.STATE_STOPPED
 
-    def start_simulation(self, agents=None, playground=None, show_image=True):
+    def start_simulation(self, agents=None, playground=None, show_image=True, record=False):
         if playground is None:
             playground = {"size": (600, 600)}
         if self.state_simulator != self.STATE_RUNNING:
@@ -44,6 +46,8 @@ class SpgService:
             self.engine = Engine(time_limit=10000, playground=self.playground)
             self.state_simulator = self.STATE_RUNNING
             if show_image:
+                rec = []
+                start_time = time.time()
                 self.done = False
                 while not self.done:
                     actions = {}
@@ -52,12 +56,28 @@ class SpgService:
                     self.engine.step(actions)
                     self.engine.update_observations()
 
-                    cv2.imshow('playground', self.get_image()[:, :, ::-1])
+                    img = self.get_image()[:, :, ::-1]
+                    cv2.imshow('playground', img)
+                    if record:
+                        img_norm = np.zeros_like(img)
+                        cv2.normalize(img, img_norm, 255, 0,  cv2.NORM_INF)
+                        img_norm = img_norm.astype(int)
+                        rec.append(img_norm)
 
                     if cv2.waitKey(1) in (113, 27):
                         self.done = True
 
                     time.sleep(0.05)
+
+                fps = int(time.time() - start_time)
+                if record:
+                    video = cv2.VideoWriter('record.avi',cv2.VideoWriter_fourcc(*'DIVX'), fps, img_norm[:2])
+
+                    for frame in rec:
+                        video.write(frame)
+                    
+                    video.release()
+
                 cv2.destroyWindow('playground')
                 cv2.waitKey(1)
             else:
@@ -192,7 +212,7 @@ class SpgService:
                             "is_robot": is_robot,
                             "type": agent_type,
                             "id": agent_id,
-                            "dist": detection[1],
+                            "dist": 1 - detection[1],
                             "angle": detection[2],
                         }
                     )
@@ -203,9 +223,9 @@ class SpgService:
             closest_sensors = {}
             for name in sensors:
                 if len(sensors[name]) > 0:
-                    closest = {"dist": 1}
+                    closest = {"dist": 0}
                     for detection in sensors[name]:
-                        if detection["dist"] <= closest["dist"]:
+                        if detection["dist"] >= closest["dist"]:
                             closest = detection
                     closest_sensors[name] = closest
                 else:
