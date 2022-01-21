@@ -19,6 +19,7 @@ class Agent:
         use_proximeters=None,
         agent_type=None,
         initial_coordinates=None,
+        texture=None,
         radius=None,
         freq=1.0,
     ) -> None:
@@ -38,6 +39,7 @@ class Agent:
                 random(),
             )
         )
+        self.texture = texture
         self.radius = radius if radius is not None else 12
         self._no_detection_value = 2000.0
         self.max_speed = 10.0

@@ -95,21 +95,25 @@ class Simulator:
         self.routine_manager = RoutineManager()
 
     def start(self):
-        data = {
-            "agents": [
-                {
+        agents = []
+        for agent in self.agents:
+            agent_params = {
                     "id": agent.id,
                     "type": agent.type,
                     "initial_coordinates": agent.initial_coordinates,
                     "radius": agent.radius,
                 }
-                for agent in self.agents
-            ],
+            if agent.texture is not None:
+                agent_params["texture"] = agent.texture
+            agents.append(agent_params)
+
+        data = {
+            "agents": 
+                agents,
             "playground":{
                 **self.playground_params
             }
         }
-
         resp = self._send_request("GET", OPEN_SESSION_URL, json=data)
         return resp
 

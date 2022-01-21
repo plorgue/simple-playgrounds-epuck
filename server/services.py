@@ -1,4 +1,3 @@
-from random import random
 from typing import Dict
 
 import cv2
@@ -126,7 +125,7 @@ class SpgService:
         self.state_simulator = self.STATE_STOPPED
 
     def add_agent(
-        self, id, initial_coordinates=((0.5, 0.5), 0), radius=12, type="epuck"
+        self, id, type="epuck", initial_coordinates=((0.5, 0.5), 0), radius=12, **kwargs
     ):
         """
         Add an BaseAgent with 2 sensors SemanticCones attached to 2 eyes
@@ -142,21 +141,19 @@ class SpgService:
 
         a_controller = RemoteController()
         agent = BaseAgent(
-            controller=a_controller,
-            name=f"{type}_{id}",
-            radius=radius,
+            controller=a_controller, name=f"{type}_{id}", radius=radius, **kwargs
         )
         self.controllers[agent.name] = a_controller
 
         left_eye = Eye(
             agent.base_platform,
             angle_offset=-math.pi / 4,
-            position_anchor=(radius / 2, -radius),
+            position_anchor=(radius / 2, -radius*0.8),
         )
         right_eye = Eye(
             agent.base_platform,
             angle_offset=math.pi / 4,
-            position_anchor=(radius / 2, radius),
+            position_anchor=(radius / 2, radius*0.8),
         )
 
         agent.add_part(left_eye)
