@@ -66,6 +66,7 @@ class SpgService:
                 rec = []
                 start_time = time.time()
                 self.done = False
+                last_frame = start_time
                 while not self.done:
                     actions = {}
                     for agent in self.playground.agents:
@@ -75,26 +76,27 @@ class SpgService:
 
                     img = self.get_image()[:, :, ::-1]
                     cv2.imshow("playground", img)
-                    if record:
-                        img_norm = np.zeros_like(img)
-                        cv2.normalize(img, img_norm, 255, 0, cv2.NORM_INF)
-                        img_norm = img_norm.astype(int)
-                        rec.append(img_norm)
+
+
+                    if record and time.time() - last_frame > 0.04:
+                        rec.append(img)
+                        last_frame = time.time()
 
                     if cv2.waitKey(1) in (113, 27):
                         self.done = True
 
-                    # time.sleep(0.05)
-
-                fps = int(time.time() - start_time)
+                fps = int(len(rec) / int(time.time() - start_time))
                 if record:
                     video = cv2.VideoWriter(
-                        "record.avi", cv2.VideoWriter_fourcc(*"DIVX"), fps, img_norm[:2]
+                        "record.avi", cv2.VideoWriter_fourcc(*"MJPG"), fps, self.PLAYGROUND_SIZE
                     )
 
                     for frame in rec:
-                        video.write(frame)
-
+                        img_norm = np.zeros_like(frame)
+                        cv2.normalize(frame, img_norm, 255, 0, cv2.NORM_INF)
+                        img_norm = img_norm.astype(np.uint8)
+                        video.write(img_norm)
+                    
                     video.release()
 
                 cv2.destroyWindow("playground")

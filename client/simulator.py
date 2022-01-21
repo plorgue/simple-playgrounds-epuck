@@ -1,4 +1,3 @@
-from msilib.schema import SelfReg
 import requests
 import time
 from threading import Condition
