@@ -2,7 +2,6 @@ from copy import copy
 from time import sleep
 
 from random import random
-from pprint import pprint
 
 from threading import Condition
 from behavior import Behavior, BehaviorMixer
@@ -162,7 +161,6 @@ class Agent:
                     and prox.get("type", None) not in excluded_objects
                     else 0
                     for prox in proximeters.values()
-
                 ]
             else:
                 activations = [

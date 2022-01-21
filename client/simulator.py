@@ -1,3 +1,4 @@
+from msilib.schema import SelfReg
 import requests
 import time
 from threading import Condition
@@ -15,14 +16,14 @@ ADD_SPHERE_URL = "simulator/add-sphere"
 STATE_SIMULATOR = "simulator"
 
 
-def get_session(nb_agents=1, old_simulator=None, agents=None):
+def get_session(nb_agents=1, old_simulator=None, agents=None, **args):
     if agents is None:
         agents = []
     if old_simulator is not None:
         old_simulator.stop()
         del old_simulator
 
-    simulator = Simulator()
+    simulator = Simulator(**args)
 
     agents_created = []
     for agent_id in range(nb_agents):
@@ -81,8 +82,9 @@ def sphere_apparition(simulator, sizes=None, mass=0.5, eatable=True, max_pos=Non
     simulator.n_spheres += 1
 
 class Simulator:
-    def __init__(self, host="127.0.0.1", port=5000) -> None:
+    def __init__(self, host="127.0.0.1", port=5000, playground_params = {}) -> None:
         self.agents = []
+        self.playground_params = playground_params
         self._session = requests.Session()
         # noinspection PyTypeChecker
         self._url = "".join(("http://", host, ":", str(port), "/"))
@@ -100,10 +102,12 @@ class Simulator:
                     "type": agent.type,
                     "initial_coordinates": agent.initial_coordinates,
                     "radius": agent.radius,
-                    # "used_proximeters": agent.used_proximeters,
                 }
                 for agent in self.agents
-            ]
+            ],
+            "playground":{
+                **self.playground_params
+            }
         }
 
         resp = self._send_request("GET", OPEN_SESSION_URL, json=data)

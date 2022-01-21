@@ -20,7 +20,7 @@ def open_session():
     data = request.get_json().get('json')
 
     # ask main thread to start simple_playgrounds simulator
-    main_thread_queue.put(lambda: spg.start_simulation(agents=data["agents"]))
+    main_thread_queue.put(lambda: spg.start_simulation(**data))
     return Response(status=200)
 
 

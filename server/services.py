@@ -1,4 +1,4 @@
-from tracemalloc import start
+from random import random
 from typing import Dict
 
 import cv2
@@ -10,14 +10,21 @@ from simple_playgrounds.device.sensors import SemanticCones
 from simple_playgrounds.engine import Engine
 from simple_playgrounds.playground import SingleRoom
 from simple_playgrounds.element.elements.edible import Apple
+from simple_playgrounds.element.elements.contact import Candy
+
 
 from controllers.remote_controller import RemoteController
+from interactions import big_ones_eat_small_ones
+
+from simple_playgrounds.common.definitions import CollisionTypes
 
 
 class SpgService:
     STATE_RUNNING = "running"
     STATE_STOPPED = "stop"
     STATE_WAITING = "waiting"
+
+    PLAYGROUND_SIZE = (600, 600)
 
     controllers: Dict[str, RemoteController]
     playground: SingleRoom
@@ -32,16 +39,27 @@ class SpgService:
         self.controllers = {}
         self.state_simulator = self.STATE_STOPPED
 
-    def start_simulation(self, agents=None, playground=None, show_image=True, record=False):
-        if playground is None:
-            playground = {"size": (600, 600)}
+    def start_simulation(
+        self,
+        agents=None,
+        playground=None,
+        show_image=True,
+        record=False,
+    ):
+        if type(playground) is not dict or playground.get("size", None) is None:
+            playground = {"size": self.PLAYGROUND_SIZE}
+
         if self.state_simulator != self.STATE_RUNNING:
 
-            self.playground = SingleRoom(size=playground["size"])
+            self.playground = SingleRoom(size=tuple(playground["size"]))
 
             if agents:
                 for agent in agents:
                     self.add_agent(**agent)
+
+            if playground.get("interactions", None) is not None:
+                for interaction in playground["interactions"]:
+                    self.add_interaction(interaction)
 
             self.engine = Engine(time_limit=10000, playground=self.playground)
             self.state_simulator = self.STATE_RUNNING
@@ -57,28 +75,30 @@ class SpgService:
                     self.engine.update_observations()
 
                     img = self.get_image()[:, :, ::-1]
-                    cv2.imshow('playground', img)
+                    cv2.imshow("playground", img)
                     if record:
                         img_norm = np.zeros_like(img)
-                        cv2.normalize(img, img_norm, 255, 0,  cv2.NORM_INF)
+                        cv2.normalize(img, img_norm, 255, 0, cv2.NORM_INF)
                         img_norm = img_norm.astype(int)
                         rec.append(img_norm)
 
                     if cv2.waitKey(1) in (113, 27):
                         self.done = True
 
-                    time.sleep(0.05)
+                    # time.sleep(0.05)
 
                 fps = int(time.time() - start_time)
                 if record:
-                    video = cv2.VideoWriter('record.avi',cv2.VideoWriter_fourcc(*'DIVX'), fps, img_norm[:2])
+                    video = cv2.VideoWriter(
+                        "record.avi", cv2.VideoWriter_fourcc(*"DIVX"), fps, img_norm[:2]
+                    )
 
                     for frame in rec:
                         video.write(frame)
-                    
+
                     video.release()
 
-                cv2.destroyWindow('playground')
+                cv2.destroyWindow("playground")
                 cv2.waitKey(1)
             else:
                 self.engine.run()
@@ -100,17 +120,13 @@ class SpgService:
 
     def reset_simulator(self):
         self.playground.reset()
-        self.playground = SingleRoom(size=(600, 600))
+        self.playground = SingleRoom(size=self.PLAYGROUND_SIZE)
         self.controllers = {}
         self.engine.terminate()
         self.state_simulator = self.STATE_STOPPED
 
     def add_agent(
-            self,
-            id,
-            initial_coordinates=((0.5, 0.5), 0),
-            radius=12,
-            type="epuck"
+        self, id, initial_coordinates=((0.5, 0.5), 0), radius=12, type="epuck"
     ):
         """
         Add an BaseAgent with 2 sensors SemanticCones attached to 2 eyes
@@ -125,11 +141,23 @@ class SpgService:
         """
 
         a_controller = RemoteController()
-        agent = BaseAgent(controller=a_controller, name=f"{type}_{id}", radius=radius)
+        agent = BaseAgent(
+            controller=a_controller,
+            name=f"{type}_{id}",
+            radius=radius,
+        )
         self.controllers[agent.name] = a_controller
 
-        left_eye = Eye(agent.base_platform, angle_offset=-math.pi / 4)
-        right_eye = Eye(agent.base_platform, angle_offset=math.pi / 4)
+        left_eye = Eye(
+            agent.base_platform,
+            angle_offset=-math.pi / 4,
+            position_anchor=(radius / 2, -radius),
+        )
+        right_eye = Eye(
+            agent.base_platform,
+            angle_offset=math.pi / 4,
+            position_anchor=(radius / 2, radius),
+        )
 
         agent.add_part(left_eye)
         agent.add_part(right_eye)
@@ -138,9 +166,9 @@ class SpgService:
             name="left",
             anchor=left_eye,
             fov=90,
-            max_range=220,
-            n_cone=30,
-            rays_per_cone=5,
+            max_range=300,
+            n_cone=5,
+            rays_per_cone=3,
             normalize=True,
             invisible_elements=agent.parts,
         )
@@ -148,9 +176,9 @@ class SpgService:
             name="right",
             anchor=right_eye,
             fov=90,
-            max_range=220,
-            n_cone=30,
-            rays_per_cone=5,
+            max_range=300,
+            n_cone=5,
+            rays_per_cone=3,
             normalize=True,
             invisible_elements=agent.parts,
         )
@@ -172,6 +200,12 @@ class SpgService:
                 initial_coordinates[1],
             )
 
+    def add_interaction(self, interaction):
+        if interaction == "BIG_EAT_SMALL":
+            self.playground.add_interaction(
+                CollisionTypes.PART, CollisionTypes.PART, big_ones_eat_small_ones
+            )
+
     def get_agents_names(self):
         return [agent.name for agent in self.playground.agents]
 
@@ -188,17 +222,16 @@ class SpgService:
             raise ValueError(f"no agent with name {agent} was found")
 
         sensors = {}
-
         for sensor in agent.observations.keys():
             a_sensor = []
-            obj_detected = []
+            # obj_detected = []
             for detection in agent.observations[sensor]:
                 agent_type, agent_id = None, None
                 is_robot = isinstance(detection[0], MobilePlatform)
 
                 if is_robot:
                     name = detection[0].agent.name.split("_")
-                else: 
+                else:
                     name = detection[0].name.split("_")
 
                 if len(name) == 1:
@@ -206,19 +239,20 @@ class SpgService:
                 elif len(name) == 2:
                     agent_type, agent_id = name
 
-                if agent_id not in obj_detected:
-                    a_sensor.append(
-                        {
-                            "is_robot": is_robot,
-                            "type": agent_type,
-                            "id": agent_id,
-                            "dist": 1 - detection[1],
-                            "angle": detection[2],
-                        }
-                    )
-                    obj_detected.append(agent_id)
+                # if agent_id not in obj_detected:
+                a_sensor.append(
+                    {
+                        "is_robot": is_robot,
+                        "type": agent_type,
+                        "id": agent_id,
+                        "dist": 1 - detection[1],
+                        "angle": detection[2],
+                    }
+                )
+                # obj_detected.append(agent_id)
 
             sensors[sensor.name] = a_sensor
+
         if mode == "closest":
             closest_sensors = {}
             for name in sensors:
@@ -233,7 +267,6 @@ class SpgService:
             return closest_sensors
 
         if mode == "all":
-            print(sensors)
             return sensors
 
     def set_speed(self, name, speed):
@@ -251,12 +284,13 @@ class SpgService:
     def add_sphere(self, name, position, sizes, mass, eatable):
         radius = sum(sizes) / len(sizes)  # Let's just stick to a circle shape for now
         if eatable:
-            sphere = Apple(1.0, 1.0, 0.9, name=name, mass=mass, radius=radius)
+            sphere = Candy(1.0)
+            # , 1.0, 0.9, name=name, mass=mass, radius=radius
         else:
-            raise NotImplementedError("functionality add_sphere not implemented for non edible elements")
+            raise NotImplementedError(
+                "functionality add_sphere not implemented for non edible elements"
+            )
         self.playground.add_element(sphere, initial_coordinates=(tuple(position), 0))
-
-
 
     # def get_agents_position(self):
     #     return {agent.name: agent.coordinates for agent in self.playground.agents}
