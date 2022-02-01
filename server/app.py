@@ -108,53 +108,19 @@ def add_sphere():
         name = data["name"]
         position = data["position"]
         sizes = data["sizes"]
+        radius = data["radius"]
         mass = data["mass"]
         eatable = data["eatable"]
         spg.add_sphere(
             name,
             np.array(position) * np.array(spg.playground.size),
             np.array(sizes) * np.array(spg.playground.size),
+            radius,
             mass,
             eatable
         )
         return jsonify(success=True)
     return jsonify(success=False)
-
-
-# @app.route("/agents/speed")
-# def agents_speed():
-#     if request.method == "GET":
-#         return jsonify({"data": spg.get_agents_velocity()})
-
-
-# @app.route("/agents/position")
-# def agents_position():
-#     if request.method == "GET":
-#         return jsonify({"data": spg.get_agents_position()})
-
-
-# @app.route("/agent/<name>")
-# def an_agent(name):
-#     if request.method == "GET":
-
-#         return jsonify(
-#             {
-#                 "data": {
-#                     "name": name,
-#                     "position": spg.get_agents_position()[name],
-#                     "velocity": spg.get_agents_velocity()[name]["velocity"],
-#                     "rotation": spg.get_agents_velocity()[name]["rotation"],
-#                     "sensors": spg.get_agent_sensors(name)["sensors"],
-#                 }
-#             }
-#         )
-
-
-# @app.route("/agent/<name>/sensor/<sensor>")
-# def a_sensor(name, sensor):
-#     if request.method == "GET":
-
-#         return jsonify({"data": spg.get_agent_sensor_value(name, sensor)})
 
 
 if __name__ == "__main__":

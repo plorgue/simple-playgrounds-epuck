@@ -52,7 +52,7 @@ def close_session(simulator):
     del simulator
 
 
-def sphere_apparition(simulator, sizes=None, mass=0.5, eatable=True, max_pos=None, min_pos=None):
+def sphere_apparition(simulator, sizes=None, radius=None, mass=0.5, eatable=True, max_pos=None, min_pos=None):
     if simulator.n_spheres is None:
         simulator.n_spheres = 0
     if sizes is None:
@@ -74,6 +74,7 @@ def sphere_apparition(simulator, sizes=None, mass=0.5, eatable=True, max_pos=Non
             "name": name,
             "position": position.tolist(),
             "sizes": sizes,
+            "radius": radius,
             "mass": mass,
             "eatable": eatable
         }
@@ -146,15 +147,12 @@ class Simulator:
         self.agents.append(agent)
         return agent
 
-    def start_sphere_apparition(self, period=3., min_pos=None, max_pos=None):
-        self.attach_routine(sphere_apparition, freq=1.0 / period, max_pos=max_pos, min_pos=min_pos)
-        # self.attach_routine(eating, freq=4.)
+    def start_sphere_apparition(self, period=3.0, **kwargs):
+        self.attach_routine(sphere_apparition, freq=1.0/period, **kwargs)
         self.start_routine(sphere_apparition)
-        # self.start_routine(eating)
 
     def stop_sphere_apparition(self):
         self.stop_routine(sphere_apparition)
-        # self.stop_routine(eating)
 
     def attach_routine(self, callback, freq, **kwargs):
         routine = Routine(self, callback, self._condition, freq, **kwargs)

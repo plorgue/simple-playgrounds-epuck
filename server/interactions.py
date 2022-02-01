@@ -24,7 +24,6 @@ def big_ones_eat_small_ones(arbiter, space, data):
             ),
             2 * math.pi * random(),
         )
-        agent2.velocity = (0, 0)
         return True
     elif agent1.base_platform.radius < agent2.base_platform.radius:
         agent1.position, agent1.angle = (

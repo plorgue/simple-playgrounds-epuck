@@ -77,7 +77,6 @@ class SpgService:
                     img = self.get_image()[:, :, ::-1]
                     cv2.imshow("playground", img)
 
-
                     if record and time.time() - last_frame > 0.04:
                         rec.append(img)
                         last_frame = time.time()
@@ -88,7 +87,10 @@ class SpgService:
                 fps = int(len(rec) / int(time.time() - start_time))
                 if record:
                     video = cv2.VideoWriter(
-                        "record.avi", cv2.VideoWriter_fourcc(*"MJPG"), fps, self.PLAYGROUND_SIZE
+                        "record.avi",
+                        cv2.VideoWriter_fourcc(*"MJPG"),
+                        fps,
+                        self.PLAYGROUND_SIZE,
                     )
 
                     for frame in rec:
@@ -96,7 +98,7 @@ class SpgService:
                         cv2.normalize(frame, img_norm, 255, 0, cv2.NORM_INF)
                         img_norm = img_norm.astype(np.uint8)
                         video.write(img_norm)
-                    
+
                     video.release()
 
                 cv2.destroyWindow("playground")
@@ -150,12 +152,12 @@ class SpgService:
         left_eye = Eye(
             agent.base_platform,
             angle_offset=-math.pi / 4,
-            position_anchor=(radius / 2, -radius*0.8),
+            position_anchor=(radius / 2, -radius * 0.8),
         )
         right_eye = Eye(
             agent.base_platform,
             angle_offset=math.pi / 4,
-            position_anchor=(radius / 2, radius*0.8),
+            position_anchor=(radius / 2, radius * 0.8),
         )
 
         agent.add_part(left_eye)
@@ -223,7 +225,6 @@ class SpgService:
         sensors = {}
         for sensor in agent.observations.keys():
             a_sensor = []
-            # obj_detected = []
             for detection in agent.observations[sensor]:
                 agent_type, agent_id = None, None
                 is_robot = isinstance(detection[0], MobilePlatform)
@@ -238,7 +239,6 @@ class SpgService:
                 elif len(name) == 2:
                     agent_type, agent_id = name
 
-                # if agent_id not in obj_detected:
                 a_sensor.append(
                     {
                         "is_robot": is_robot,
@@ -248,7 +248,6 @@ class SpgService:
                         "angle": detection[2],
                     }
                 )
-                # obj_detected.append(agent_id)
 
             sensors[sensor.name] = a_sensor
 
@@ -280,30 +279,13 @@ class SpgService:
 
         return velocity, rotation
 
-    def add_sphere(self, name, position, sizes, mass, eatable):
-        radius = sum(sizes) / len(sizes)  # Let's just stick to a circle shape for now
+    def add_sphere(self, name, position, sizes, radius, mass, eatable):
         if eatable:
-            sphere = Candy(1.0)
-            # , 1.0, 0.9, name=name, mass=mass, radius=radius
+            if radius is None:
+                radius = 3
+            sphere = Candy(1, radius=radius)
         else:
-            raise NotImplementedError(
-                "functionality add_sphere not implemented for non edible elements"
-            )
+            # Let's just stick to a circle shape for now
+            radius = sum(sizes) / len(sizes)
+            sphere = Apple(1.0, 1.0, 0.9, name=name, mass=mass, radius=radius)
         self.playground.add_element(sphere, initial_coordinates=(tuple(position), 0))
-
-    # def get_agents_position(self):
-    #     return {agent.name: agent.coordinates for agent in self.playground.agents}
-
-    # def get_agents_velocity(self):
-    #     print(self.playground.agents[0].velocity)
-    #     return {
-    #         agent.name: {"velocity": agent.velocity, "rotation": agent.angular_velocity}
-    #         for agent in self.playground.agents
-    #     }
-
-    # def get_agent_sensors(self, name):
-    #     agent: BaseAgent
-    #     for agt in self.playground.agents:
-    #         if agt.name == name:
-    #             agent = agt
-    #     return {"agent": name, "sensors": [sensor.name for sensor in agent.sensors]}
