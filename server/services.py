@@ -84,8 +84,8 @@ class SpgService:
                     if cv2.waitKey(1) in (113, 27):
                         self.done = True
 
-                fps = int(len(rec) / int(time.time() - start_time))
                 if record:
+                    fps = int(len(rec) / int(time.time() - start_time))
                     video = cv2.VideoWriter(
                         "record.avi",
                         cv2.VideoWriter_fourcc(*"MJPG"),

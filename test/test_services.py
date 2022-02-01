@@ -5,7 +5,7 @@ sys.path.append(os.path.join(os.getcwd()))
 
 from simple_playgrounds.device.sensors import SemanticCones
 import pytest
-from services import SpgService
+from server.services import SpgService
 import threading, time
 
 
@@ -28,6 +28,7 @@ def test_start_stop_simulator():
 
     assert len(spg_service.playground.agents) == 0
     assert spg_service.done == True
+
 
 def test_add_agent():
     id = 0
@@ -91,8 +92,15 @@ def test_get_agents_names(id, type):
         assert len(spg_service.get_agents_names()) == 1
         assert spg_service.get_agents_names()[0] == f"epuck_{id}"
 
+
 @pytest.mark.skip
-def sensors_value_all(spg_service, main_agent, agents_detected_on_left, agents_detected_on_right, agents_not_detected):
+def sensors_value_all(
+    spg_service,
+    main_agent,
+    agents_detected_on_left,
+    agents_detected_on_right,
+    agents_not_detected,
+):
     spg_service.start_simulation(
         agents=[
             main_agent,
@@ -112,6 +120,7 @@ def test_sensors_value_all():
         "id": 0,
         "initial_coordinates": ((X, Y), -math.pi / 2),
         "radius": RADIUS,
+        "texture": (255, 100, 100),
     }
     agents_not_detected = [
         {
@@ -133,7 +142,7 @@ def test_sensors_value_all():
     agents_detected_on_left = [
         {
             "id": 21,
-            "initial_coordinates": ((50, Y + RADIUS), 0),
+            "initial_coordinates": ((50, Y + RADIUS - 5), 0),
             "radius": RADIUS,
         },
         {
@@ -160,7 +169,7 @@ def test_sensors_value_all():
         },
         {
             "id": 33,
-            "initial_coordinates": ((350, Y + RADIUS), 0),
+            "initial_coordinates": ((350, Y + RADIUS - 5), 0),
             "radius": RADIUS,
         },
     ]
@@ -172,7 +181,13 @@ def test_sensors_value_all():
 
     thread = threading.Thread(
         target=sensors_value_all,
-        args=(spg_service, main_agent, agents_detected_on_left, agents_detected_on_right, agents_not_detected),
+        args=(
+            spg_service,
+            main_agent,
+            agents_detected_on_left,
+            agents_detected_on_right,
+            agents_not_detected,
+        ),
     )
     thread.start()
 
@@ -183,8 +198,15 @@ def test_sensors_value_all():
     left = [int(obj["id"]) for obj in detections["left"] if obj["is_robot"]]
     right = [int(obj["id"]) for obj in detections["right"] if obj["is_robot"]]
 
-    assert left_ids == left
-    assert right_ids == right
+    for left_detect in left:
+        assert left_detect in left_ids
+    for left_mustbe in left_ids:
+        assert left_mustbe in left
+
+    for right_detect in right:
+        assert right_detect in right_ids
+    for right_mustbe in right_ids:
+        assert right_mustbe in right
 
     spg_service.stop_simulator()
 
