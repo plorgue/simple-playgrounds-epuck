@@ -45,6 +45,14 @@ class SpgService:
         show_image=True,
         record=False,
     ):
+        """
+        Start the simulation
+        Args:
+            agents: List of agents descriptions
+            playground: Playground parameters
+            show_image: Boolean to show the playground
+            record: Boolean to record the playground
+        """
         if type(playground) is not dict or playground.get("size", None) is None:
             playground = {"size": self.PLAYGROUND_SIZE}
 
@@ -202,6 +210,13 @@ class SpgService:
             )
 
     def add_interaction(self, interaction):
+        """
+        Add an interaction between two elements of the playground
+        Args:
+            interaction: string that identify a custom interaction
+        
+        (see playground.interactions for an example)
+        """
         if interaction == "BIG_EAT_SMALL":
             self.playground.add_interaction(
                 CollisionTypes.PART, CollisionTypes.PART, big_ones_eat_small_ones
@@ -269,8 +284,10 @@ class SpgService:
 
     def set_speed(self, name, speed):
         """
-        name:    agent name
-        speed:   {left: float between -1 and 1, right: float between -1 and 1}
+        Set the speed of an agent
+        Args:
+            name:    agent name
+            speed:   {left: float between -1 and 1, right: float between -1 and 1}
         """
         velocity = (speed["left"] + speed["right"]) / 2
         rotation = (speed["left"] - speed["right"]) / 2
@@ -280,6 +297,16 @@ class SpgService:
         return velocity, rotation
 
     def add_sphere(self, name, position, sizes, radius, mass, eatable):
+        """
+        Add a sphere to the playground
+        Args:
+            name:    string
+            position:    tuple (x,y)
+            sizes:    tuple (x,y)
+            radius:   integer
+            mass:     integer
+            eatable:  boolean
+        """        
         if eatable:
             if radius is None:
                 radius = 3

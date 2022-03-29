@@ -147,6 +147,13 @@ class Agent:
         self._simulator.wait(seconds)
 
     def prox_activations(self, tracked_objects=None, excluded_objects=[], return_epucks=False):
+        """
+        Returns the sensors values of the agents. Only return the nearest objects on each side.
+        Args:
+            tracked_objects: list of objects to track. If None, all objects are tracked.
+            excluded_objects: list of objects to exclude.
+            return_epucks: if True, returns the epucks that are detected.
+        """
         response = self._simulator._send_request(
             "GET",
             GET_SENSOR_VALUES_URL,
