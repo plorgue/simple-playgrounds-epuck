@@ -1,0 +1,15 @@
+__pycache__
+.vscode
+.pytest_cache
+.venv
+.idea/
+note.txt
+
+/server/script.ipynb
+/server/script.py
+
+/client/.ipynb_checkpoints/
+/client/new-notebook.ipynb
+/client/notebook.ipynb
+/client/requester.py
+
